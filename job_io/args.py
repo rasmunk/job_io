@@ -16,12 +16,16 @@ def _get_arguments(arguments, startswith=""):
 def add_job_group(parser):
     job_group = parser.add_argument_group(title="JOB arguments")
     job_group.add_argument("--job-name", default="DEFAULT")
-    job_group.add_argument("--job-command", default=[])
+    job_group.add_argument("--job-command", default="")
+    job_group.add_argument("--job-args", nargs="*", default="")
     job_group.add_argument("--job-verbose-output", default=True)
 
 
 def add_s3_group(parser):
     s3_group = parser.add_argument_group(title="S3 arguments")
+    s3_group.add_argument("--s3-credentials", default="~/.aws/credentials")
+    s3_group.add_argument("--s3-config", default="~/.aws/config")
+    s3_group.add_argument("--s3-endpoint-url", default=False)
     s3_group.add_argument("--s3-bucket-name", default=False)
     s3_group.add_argument("--s3-input-path", default="/tmp/input")
     s3_group.add_argument("--s3-output-path", default="/tmp/output")
