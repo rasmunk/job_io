@@ -6,7 +6,7 @@ import botocore
 import json
 import shutil
 import subprocess
-from args import get_arguments, JOB, S3
+from job_io.args import get_arguments, JOB, S3
 
 
 def create_dir(path):
@@ -143,8 +143,7 @@ def create_bucket(s3_client, bucket_name, **kwargs):
     return bucket
 
 
-# Set parameters via yaml or environment
-if __name__ == "__main__":
+def main():
     job_args = get_arguments([JOB], strip_group_prefix=True)
     s3_args = get_arguments([S3], strip_group_prefix=True)
     s3_config = {}
@@ -195,3 +194,8 @@ if __name__ == "__main__":
             if not remove_dir(os.path.dirname(full_result_path)):
                 print("Failed to remove results after upload")
                 exit(1)
+
+
+# Set parameters via yaml or environment
+if __name__ == "__main__":
+    main()
