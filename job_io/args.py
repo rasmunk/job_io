@@ -41,8 +41,7 @@ def get_arguments(argument_types, strip_group_prefix=False):
         if argument_group in argument_groups:
             argument_groups[argument_group](parser)
 
-    args, unknown = parser.parse_known_intermixed_args()
-    # args = parser.parse_args()
+    args, unknown = parser.parse_known_args()
     if strip_group_prefix:
         stripped_args = {}
         for argument_group in argument_types:

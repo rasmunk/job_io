@@ -194,6 +194,7 @@ def main():
             if not remove_dir(os.path.dirname(full_result_path)):
                 print("Failed to remove results after upload")
                 exit(1)
+    print("Finished")
 
 
 # Set parameters via yaml or environment
