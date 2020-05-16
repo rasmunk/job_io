@@ -3,6 +3,7 @@ import base64
 import binascii
 import boto3
 import botocore
+import copy
 import json
 import shutil
 import subprocess
@@ -31,14 +32,18 @@ def remove_dir(path):
 def expand_s3_bucket(s3_resource, bucket_name, target_dir=None, prefix="input"):
     bucket = s3_resource.Bucket(bucket_name)
     for obj in bucket.objects.filter(Prefix=prefix):
-        path = os.path.dirname(obj.key)
-        if target_dir:
-            path = os.path.join(target_dir, obj.key)
+        obj_path = copy.deepcopy(obj.key)
+        if prefix:
+            obj_path = os.path.relpath(obj_path, prefix)
 
-        dir_path = os.path.dirname(path)
+        if target_dir:
+            full_path = os.path.join(target_dir, obj_path)
+        else:
+            full_path = obj_path
+        dir_path = os.path.dirname(full_path)
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
-        bucket.download_file(obj.key, path)
+        bucket.download_file(obj.key, full_path)
     return True
 
 
@@ -49,7 +54,7 @@ def upload_to_s3(s3_client, local_path, s3_path, bucket_name):
     return True
 
 
-def upload_directory(s3_client, path, bucket_name, s3_prefix="output"):
+def upload_directory(s3_client, path, bucket_name, prefix="output"):
     if not os.path.exists(path):
         return False
     for root, dirs, files in os.walk(path):
@@ -59,8 +64,8 @@ def upload_directory(s3_client, path, bucket_name, s3_prefix="output"):
             # Skip the first /
             # HACK
             s3_path = local_path.split(path)[1][1:]
-            if s3_prefix:
-                s3_path = os.path.join(s3_prefix, s3_path)
+            if prefix:
+                s3_path = os.path.join(prefix, s3_path)
             # Upload
             uploaded = upload_to_s3(s3_client, local_path, s3_path, bucket_name)
             if not uploaded:
@@ -208,6 +213,8 @@ def main():
             if not remove_dir(os.path.dirname(full_result_path)):
                 print("Failed to remove results after upload")
                 exit(1)
+        # TODO, cleanout inputs
+
     print("Finished")
 
 
