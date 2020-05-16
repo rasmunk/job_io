@@ -76,7 +76,7 @@ def load_s3_session_vars(directory, session_vars):
     for k, v in session_vars.items():
         value_path = os.path.join(directory, k)
         if os.path.exists(value_path):
-            with open(setting_path, "r") as fh:
+            with open(value_path, "r") as fh:
                 content = fh.read()
                 # If base64 string
                 try:
