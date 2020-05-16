@@ -70,22 +70,16 @@ def upload_directory(s3_client, path, bucket_name, s3_prefix="output"):
 
 def load_s3_session_vars(directory, session_vars):
     loaded_settings = {}
-    if os.path.exists(directory):
-        print("Content of directory: {}".format(os.listdir(directory)))
-
     for k, v in session_vars.items():
         value_path = os.path.join(directory, k)
         if os.path.exists(value_path):
             if os.path.islink(value_path):
-                # TODO, do recursive readlink, since the target might be
-                # a symlink itself
-                value_path = os.readlink(value_path)
-
+                value_path = os.path.realpath(value_path)
             if os.path.isfile(value_path) and not os.path.islink(value_path):
-                with open(value_path, "r") as fh:
+                with open(value_path, "rb") as fh:
                     content = fh.read()
-                    # If base64 string
                     try:
+                        # If base64 string
                         content = base64.decodestring(content)
                     except binascii.Error:
                         pass
