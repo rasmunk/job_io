@@ -83,7 +83,7 @@ def load_s3_session_vars(directory, session_vars):
                         content = base64.decodestring(content)
                     except binascii.Error:
                         pass
-                    loaded_settings[k] = content
+                    loaded_settings[k] = content.decode("utf-8")
     return loaded_settings
 
 
