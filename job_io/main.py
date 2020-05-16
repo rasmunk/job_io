@@ -6,7 +6,7 @@ import botocore
 import json
 import shutil
 import subprocess
-from args import get_arguments, JOB, S3
+from job_io.args import get_arguments, JOB, S3
 
 
 def create_dir(path):
