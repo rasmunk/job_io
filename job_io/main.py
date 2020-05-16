@@ -68,7 +68,7 @@ def upload_directory(s3_client, path, bucket_name, s3_prefix="output"):
     return True
 
 
-def load_s3_session_vars(directory, session_vars):
+def load_s3_session_vars(directory, session_vars, strip_newline=True):
     loaded_settings = {}
     for k, v in session_vars.items():
         value_path = os.path.join(directory, k)
@@ -76,14 +76,16 @@ def load_s3_session_vars(directory, session_vars):
             if os.path.islink(value_path):
                 value_path = os.path.realpath(value_path)
             if os.path.isfile(value_path) and not os.path.islink(value_path):
-                with open(value_path, "rb") as fh:
-                    content = fh.read()
-                    try:
-                        # If base64 string
-                        content = base64.decodestring(content)
-                    except binascii.Error:
-                        pass
-                    loaded_settings[k] = content.decode("utf-8")
+                content = None
+                try:
+                    with open(value_path, "rb") as fh:
+                        content = fh.read()
+                except IOError as err:
+                    print("Failed to read file: {}".format(err))
+                decoded = content.decode("utf-8")
+                if strip_newline:
+                    decoded = decoded.replace("\n", "")
+                loaded_settings[k] = decoded
     return loaded_settings
 
 
