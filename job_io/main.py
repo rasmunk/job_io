@@ -168,6 +168,7 @@ def main():
         for k, v in loaded_session_vars.items():
             s3_config.update({k: v})
 
+    print("S3 config: {}".format(s3_config))
     s3_resource = boto3.resource("s3", **s3_config)
     # Load aws credentials
     expanded = expand_s3_bucket(
