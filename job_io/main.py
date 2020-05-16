@@ -214,9 +214,12 @@ def main():
                 print("Failed to remove results after upload")
                 exit(1)
         # TODO, cleanout inputs
+        if os.path.exists(s3_args.input_path):
+            if not remove_dir(s3_args.input_path):
+                print("Failed to remove input after upload")
+                exit(1)
 
     print("Finished")
-
 
 # Set parameters via yaml or environment
 if __name__ == "__main__":
