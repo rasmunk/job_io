@@ -178,11 +178,10 @@ def main():
     saved = False
     # Put results into the put path
     result_output_file = "{}.txt".format(job_args.name)
-    relative_path = os.path.join("output", result_output_file)
     if s3_args.output_path:
-        full_result_path = os.path.join(s3_args.output_path, relative_path)
+        full_result_path = os.path.join(s3_args.output_path, result_output_file)
     else:
-        full_result_path = os.path.abspath(relative_path)
+        full_result_path = os.path.abspath(result_output_file)
     saved = save_results(full_result_path, result)
 
     if saved:
