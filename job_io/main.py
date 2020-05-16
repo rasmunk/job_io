@@ -81,7 +81,7 @@ def load_s3_session_vars(directory, session_vars):
                 # a symlink itself
                 value_path = os.readlink(value_path)
 
-            if os.path.isfile(value_path):
+            if os.path.isfile(value_path) and not os.path.islink(value_path):
                 with open(value_path, "r") as fh:
                     content = fh.read()
                     # If base64 string
@@ -168,6 +168,7 @@ def main():
         loaded_session_vars = load_s3_session_vars(
             s3_args.session_vars, load_session_vars
         )
+        print("Loaded s3 session vars: {}".format(loaded_session_vars))
         for k, v in loaded_session_vars.items():
             s3_config.update({k: v})
 
