@@ -76,14 +76,20 @@ def load_s3_session_vars(directory, session_vars):
     for k, v in session_vars.items():
         value_path = os.path.join(directory, k)
         if os.path.exists(value_path):
-            with open(value_path, "r") as fh:
-                content = fh.read()
-                # If base64 string
-                try:
-                    content = base64.decodestring(content)
-                except binascii.Error:
-                    pass
-                loaded_settings[k] = content
+            if os.path.islink(value_path):
+                # TODO, do recursive readlink, since the target might be
+                # a symlink itself
+                value_path = os.readlink(value_path)
+
+            if os.path.isfile(value_path):
+                with open(value_path, "r") as fh:
+                    content = fh.read()
+                    # If base64 string
+                    try:
+                        content = base64.decodestring(content)
+                    except binascii.Error:
+                        pass
+                    loaded_settings[k] = content
     return loaded_settings
 
 
