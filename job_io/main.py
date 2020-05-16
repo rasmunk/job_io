@@ -6,7 +6,7 @@ import botocore
 import json
 import shutil
 import subprocess
-from job_io.args import get_arguments, JOB, S3
+from args import get_arguments, JOB, S3
 
 
 def create_dir(path):
@@ -68,14 +68,16 @@ def upload_directory(s3_client, path, bucket_name, s3_prefix="output"):
     return True
 
 
-def load_s3_config(path, s3_config):
+def load_s3_session_vars(directory, session_vars):
     loaded_settings = {}
-    # Find keys
-    for k, v in s3_config.items():
-        setting_path = os.path.join(path, k)
-        if os.path.exists(setting_path):
-            with open(setting_path, "r") as _file:
-                content = _file.read()
+    if os.path.exists(directory):
+        print("Content of directory: {}".format(os.listdir(directory)))
+
+    for k, v in session_vars.items():
+        value_path = os.path.join(directory, k)
+        if os.path.exists(value_path):
+            with open(setting_path, "r") as fh:
+                content = fh.read()
                 # If base64 string
                 try:
                     content = base64.decodestring(content)
@@ -150,8 +152,21 @@ def main():
     if s3_args.endpoint_url:
         s3_config.update({"endpoint_url": s3_args.endpoint_url})
 
-    # Load aws credentials
+    if s3_args.region_name:
+        s3_config.update({"region_name": s3_args.region_name})
+
+    # Dynamically get secret credentialss
+    if s3_args.session_vars:
+        load_session_vars = dict(aws_access_key_id=None, aws_secret_access_key=None)
+        print("Loading s3 session vars: {}".format(s3_args.session_vars))
+        loaded_session_vars = load_s3_session_vars(
+            s3_args.session_vars, load_session_vars
+        )
+        for k, v in loaded_session_vars.items():
+            s3_config.update({k: v})
+
     s3_resource = boto3.resource("s3", **s3_config)
+    # Load aws credentials
     expanded = expand_s3_bucket(
         s3_resource, s3_args.bucket_name, target_dir=s3_args.input_path
     )
@@ -159,7 +174,6 @@ def main():
         exit(1)
 
     result = process(job_kwargs=job_args)
-
     saved = False
     # Put results into the put path
     result_output_file = "{}.txt".format(job_args.name)
@@ -176,7 +190,7 @@ def main():
             created = create_bucket(
                 s3_resource.meta.client,
                 s3_args.bucket_name,
-                CreateBucketConfiguration={"LocationConstraint": "eu-amsterdam-1"},
+                CreateBucketConfiguration={"LocationConstraint": s3_config["region"]},
             )
             if not created:
                 print("Failed to create results bucket: {}".format(s3_args.bucket_name))
