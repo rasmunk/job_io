@@ -116,15 +116,13 @@ def process(job_kwargs=None):
     if not job_kwargs:
         job_kwargs = {}
 
-    command = [job_kwargs.command]
-    if job_kwargs.args:
-        command.extend(job_kwargs.args)
+    command = [job_kwargs["command"]]
+    if "args" in job_kwargs:
+        command.extend(job_kwargs["args"])
 
     # Subprocess
-    result = subprocess.run(command, capture_output=job_kwargs.verbose_output)
-
+    result = subprocess.run(command, capture_output=job_kwargs["verbose_output"])
     output_results = {}
-
     if hasattr(result, "args"):
         output_results.update({"command": str(getattr(result, "args"))})
     if hasattr(result, "returncode"):
@@ -153,73 +151,86 @@ def create_bucket(s3_client, bucket_name, **kwargs):
 
 
 def main():
-    job_args = get_arguments([JOB], strip_group_prefix=True)
-    s3_args = get_arguments([S3], strip_group_prefix=True)
-    s3_config = {}
-    if s3_args.endpoint_url:
-        s3_config.update({"endpoint_url": s3_args.endpoint_url})
+    job_dict = vars(get_arguments([JOB], strip_group_prefix=True))
+    if not job_dict:
+        raise RuntimeError("No job arguments were provided")
 
-    if s3_args.region_name:
-        s3_config.update({"region_name": s3_args.region_name})
+    s3_dict = vars(get_arguments([S3], strip_group_prefix=True))
+    s3_config = {}
+    if "endpoint_url" in s3_dict:
+        s3_config.update({"endpoint_url": s3_dict["endpoint_url"]})
+
+    if "region_name" in s3_dict:
+        s3_config.update({"region_name": s3_dict["region_name"]})
 
     # Dynamically get secret credentialss
-    if s3_args.session_vars:
+    if "session_vars" in s3_dict:
         load_session_vars = dict(aws_access_key_id=None, aws_secret_access_key=None)
         loaded_session_vars = load_s3_session_vars(
-            s3_args.session_vars, load_session_vars
+            s3_dict["session_vars"], load_session_vars
         )
         for k, v in loaded_session_vars.items():
             s3_config.update({k: v})
 
-    s3_resource = boto3.resource("s3", **s3_config)
-    # Load aws credentials
-    expanded = expand_s3_bucket(
-        s3_resource, s3_args.bucket_name, target_dir=s3_args.input_path
-    )
-    if not expanded:
-        exit(1)
+    if s3_config:
+        s3_resource = boto3.resource("s3", **s3_config)
+        # Load aws credentials
+        expanded = expand_s3_bucket(
+            s3_resource, s3_dict["bucket_name"], target_dir=s3_dict["input_path"]
+        )
+        if not expanded:
+            raise RuntimeError(
+                "Failed to expand the target bucket: {}".format(s3_dict["bucket_name"])
+            )
 
-    result = process(job_kwargs=job_args)
+    result = process(job_kwargs=job_dict)
     saved = False
     # Put results into the put path
-    result_output_file = "{}.txt".format(job_args.name)
-    if s3_args.output_path:
-        full_result_path = os.path.join(s3_args.output_path, result_output_file)
+    result_output_file = "{}.txt".format(job_dict.name)
+
+    if s3_dict and s3_dict["output_path"]:
+        full_result_path = os.path.join(s3_dict["output_path"], result_output_file)
     else:
         full_result_path = os.path.abspath(result_output_file)
     saved = save_results(full_result_path, result)
 
-    if saved:
-        if not bucket_exists(s3_resource.meta.client, s3_args.bucket_name):
+    if not saved:
+        raise RuntimeError(
+            "Failed to save the results of job: {}".format(job_dict["job_name"])
+        )
+
+    print("Saved results for: {}".format(job_dict["job_name"]))
+
+    if s3_dict:
+        if not bucket_exists(s3_resource.meta.client, s3_dict["bucket_name"]):
             # TODO, load region from AWS config
             created = create_bucket(
                 s3_resource.meta.client,
-                s3_args.bucket_name,
+                s3_dict["bucket_name"],
                 CreateBucketConfiguration={"LocationConstraint": s3_config["region"]},
             )
             if not created:
-                print("Failed to create results bucket: {}".format(s3_args.bucket_name))
-                exit(1)
+                raise RuntimeError(
+                    "Failed to create results bucket: {}".format(s3_dict["bucket_name"])
+                )
 
         uploaded = upload_directory(
-            s3_resource.meta.client, s3_args.output_path, s3_args.bucket_name
+            s3_resource.meta.client, s3_dict["output_path"], s3_dict["bucket_name"]
         )
         if not uploaded:
             print("Failed to upload results")
-            exit(1)
 
         # Cleanout local results
         if os.path.exists(os.path.dirname(full_result_path)):
             if not remove_dir(os.path.dirname(full_result_path)):
                 print("Failed to remove results after upload")
-                exit(1)
         # TODO, cleanout inputs
-        if os.path.exists(s3_args.input_path):
-            if not remove_dir(s3_args.input_path):
+        if os.path.exists(s3_dict["input_path"]):
+            if not remove_dir(s3_dict["input_path"]):
                 print("Failed to remove input after upload")
-                exit(1)
 
     print("Finished")
+
 
 # Set parameters via yaml or environment
 if __name__ == "__main__":
