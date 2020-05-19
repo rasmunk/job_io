@@ -23,10 +23,10 @@ def add_job_group(parser):
 
 def add_s3_group(parser):
     s3_group = parser.add_argument_group(title="S3 arguments")
-    s3_group.add_argument("--s3-session-vars", default=False)
-    s3_group.add_argument("--s3-endpoint-url", default=False)
-    s3_group.add_argument("--s3-region-name", default=False)
-    s3_group.add_argument("--s3-bucket-name", default=False)
+    s3_group.add_argument("--s3-session-vars", default="")
+    s3_group.add_argument("--s3-endpoint-url", default="")
+    s3_group.add_argument("--s3-region-name", default="")
+    s3_group.add_argument("--s3-bucket-name", default="")
     s3_group.add_argument("--s3-input-path", default="/tmp/input")
     s3_group.add_argument("--s3-output-path", default="/tmp/output")
 

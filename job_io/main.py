@@ -150,6 +150,15 @@ def create_bucket(s3_client, bucket_name, **kwargs):
     return bucket
 
 
+def valid_s3_config(s3_config, required_fields):
+    for field in required_fields:
+        if field not in s3_config:
+            return False
+        if not s3_config[field]:
+            return False
+    return True
+
+
 def main():
     job_dict = vars(get_arguments([JOB], strip_group_prefix=True))
     if not job_dict:
@@ -157,14 +166,14 @@ def main():
 
     s3_dict = vars(get_arguments([S3], strip_group_prefix=True))
     s3_config = {}
-    if "endpoint_url" in s3_dict:
+    if "endpoint_url" in s3_dict and s3_dict["endpoint_url"]:
         s3_config.update({"endpoint_url": s3_dict["endpoint_url"]})
 
-    if "region_name" in s3_dict:
+    if "region_name" in s3_dict and s3_dict["region_name"]:
         s3_config.update({"region_name": s3_dict["region_name"]})
 
     # Dynamically get secret credentialss
-    if "session_vars" in s3_dict:
+    if "session_vars" in s3_dict and s3_dict["session_vars"]:
         load_session_vars = dict(aws_access_key_id=None, aws_secret_access_key=None)
         loaded_session_vars = load_s3_session_vars(
             s3_dict["session_vars"], load_session_vars
@@ -172,7 +181,18 @@ def main():
         for k, v in loaded_session_vars.items():
             s3_config.update({k: v})
 
-    if s3_config:
+    required_s3_fields = [
+        "session_vars",
+        "endpoint_url",
+        "region_name",
+        "bucket_name",
+        "input_path",
+        "output_path",
+    ]
+
+    valid_config = valid_s3_config(s3_dict, required_s3_fields)
+
+    if s3_config and valid_config:
         s3_resource = boto3.resource("s3", **s3_config)
         # Load aws credentials
         expanded = expand_s3_bucket(
@@ -201,7 +221,7 @@ def main():
 
     print("Saved results for: {}".format(job_dict["job_name"]))
 
-    if s3_dict:
+    if s3_dict and valid_config:
         if not bucket_exists(s3_resource.meta.client, s3_dict["bucket_name"]):
             # TODO, load region from AWS config
             created = create_bucket(
