@@ -206,7 +206,7 @@ def main():
     result = process(job_kwargs=job_dict)
     saved = False
     # Put results into the put path
-    result_output_file = "{}.txt".format(job_dict.name)
+    result_output_file = "{}.txt".format(job_dict['name'])
 
     if s3_dict and s3_dict["output_path"]:
         full_result_path = os.path.join(s3_dict["output_path"], result_output_file)
@@ -216,10 +216,10 @@ def main():
 
     if not saved:
         raise RuntimeError(
-            "Failed to save the results of job: {}".format(job_dict["job_name"])
+            "Failed to save the results of job: {}".format(job_dict["name"])
         )
 
-    print("Saved results for: {}".format(job_dict["job_name"]))
+    print("Saved results for: {}".format(job_dict["name"]))
 
     if s3_dict and valid_config:
         if not bucket_exists(s3_resource.meta.client, s3_dict["bucket_name"]):
