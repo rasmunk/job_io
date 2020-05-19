@@ -1,7 +1,7 @@
 import argparse
 from argparse import Namespace
 
-JOB = "JOB"
+RUN = "RUN"
 S3 = "S3"
 
 
@@ -13,12 +13,12 @@ def _get_arguments(arguments, startswith=""):
     return {k: v for k, v in arguments.items() if k.startswith(startswith)}
 
 
-def add_job_group(parser):
-    job_group = parser.add_argument_group(title="JOB arguments")
-    job_group.add_argument("--job-name", default="DEFAULT")
-    job_group.add_argument("--job-command", default="")
-    job_group.add_argument("--job-args", nargs="*", default="")
-    job_group.add_argument("--job-verbose-output", default=True)
+def add_execute_group(parser):
+    execute_group = parser.add_argument_group(title="Execute arguments")
+    execute_group.add_argument("execute_command", default="")
+    execute_group.add_argument("--execute-args", nargs="*", default="")
+    execute_group.add_argument("--execute-verbose", default=False)
+    execute_group.add_argument("--execute-output-path", default="/tmp/output")
 
 
 def add_s3_group(parser):
@@ -31,7 +31,7 @@ def add_s3_group(parser):
     s3_group.add_argument("--s3-output-path", default="/tmp/output")
 
 
-argument_groups = {JOB: add_job_group, S3: add_s3_group}
+argument_groups = {RUN: add_execute_group, S3: add_s3_group}
 
 
 def get_arguments(argument_types, strip_group_prefix=False):
