@@ -1,3 +1,26 @@
+import os
+import json
+import shutil
+
+
+def create_dir(path):
+    try:
+        os.makedirs(path)
+        return True
+    except IOError as err:
+        print("Failed to create: {}, err: {}".format(path, err))
+    return False
+
+
+def remove_dir(path):
+    try:
+        shutil.rmtree(path)
+        return True
+    except OSError as err:
+        print("Failed to remove: {}, err: {}".format(path, err))
+    return False
+
+
 def present_in(var, collection):
     if var not in collection:
         print("variable: {} not present in: {}".format(var, collection))
@@ -34,3 +57,21 @@ def validate_dict_values(input_dict, required_values=None):
             )
             return False
     return True
+
+
+def save_results(path, results):
+    save_dir = os.path.dirname(path)
+    if not os.path.exists(save_dir):
+        if not create_dir(save_dir):
+            return False
+    try:
+        with open(path, "w") as fh:
+            try:
+                json.dump(results, fh)
+            except TypeError as j_err:
+                print("Failed to serialize to json: {}".format(j_err))
+                return False
+        return True
+    except IOError as err:
+        print("Failed to save results: {}".format(err))
+    return False

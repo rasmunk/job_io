@@ -23,14 +23,15 @@ with open(os.path.join(cur_dir, "version.py")) as f:
 
 long_description = open("README.rst").read()
 setup(
-    name="job_io",
+    name="jobio",
     version=version_ns["__version__"],
-    description="A bootstrap package to handle input and output data for batch processes",
+    description="A bootstrap package to handle input and "
+    "output data for batch processes",
     long_description=long_description,
     author="Rasmus Munk",
     author_email="munk1@live.dk",
     packages=find_packages(),
-    url="https://github.com/rasmunk/job_io",
+    url="https://github.com/rasmunk/jobio",
     license="MIT",
     keywords=["Job", "IO", "S3", "Batch"],
     install_requires=read_req("requirements.txt"),
@@ -38,7 +39,7 @@ setup(
         "test": read_req("requirements-dev.txt"),
         "dev": read_req("requirements-dev.txt"),
     },
-    entry_points={"console_scripts": ["job_io = job_io.main:main"]},
+    entry_points={"console_scripts": ["jobio = jobio.cli.cli:run"]},
     classifiers=[
         "Intended Audience :: Developers",
         "Intended Audience :: System Administrators",

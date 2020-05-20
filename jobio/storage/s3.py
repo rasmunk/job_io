@@ -1,5 +1,44 @@
 import botocore
+import copy
 import os
+
+
+required_s3_fields = {
+    "bucket_name": str,
+    "bucket_input_prefix": str,
+    "bucket_output_prefix": str,
+    "profile_name": str,
+    "region_name": str,
+}
+
+required_s3_values = {
+    "bucket_name": False,
+    "bucket_input_prefix": False,
+    "bucket_output_prefix": False,
+    "profile_name": True,
+    "region_name": True,
+}
+
+
+def load_s3_session_vars(directory, session_vars, strip_newline=True):
+    loaded_settings = {}
+    for k, v in session_vars.items():
+        value_path = os.path.join(directory, k)
+        if os.path.exists(value_path):
+            if os.path.islink(value_path):
+                value_path = os.path.realpath(value_path)
+            if os.path.isfile(value_path) and not os.path.islink(value_path):
+                content = None
+                try:
+                    with open(value_path, "rb") as fh:
+                        content = fh.read()
+                except IOError as err:
+                    print("Failed to read file: {}".format(err))
+                decoded = content.decode("utf-8")
+                if strip_newline:
+                    decoded = decoded.replace("\n", "")
+                loaded_settings[k] = decoded
+    return loaded_settings
 
 
 def upload_to_s3(s3_client, local_path, s3_path, bucket_name):
