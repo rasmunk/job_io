@@ -1,7 +1,7 @@
 import argparse
 from argparse import Namespace
 
-from jobio.defaults import RUN, S3, STAGING_STORAGE
+from jobio.defaults import EXECUTE, JOB, S3, STORAGE
 
 
 def strip_argument_prefix(arguments, prefix=""):
@@ -12,12 +12,18 @@ def _get_arguments(arguments, startswith=""):
     return {k: v for k, v in arguments.items() if k.startswith(startswith)}
 
 
+def add_job_meta_group(parser):
+    meta_group = parser.add_argument_group(title="Job metadata")
+    meta_group.add_argument("--job-name", default=False)
+    meta_group.add_argument("--job-debug", action="store_true", default=False)
+
+
 def add_execute_group(parser):
     execute_group = parser.add_argument_group(title="Execute arguments")
     execute_group.add_argument("execute_command", default="")
-    execute_group.add_argument("--execute-args", nargs="*", default="")
-    execute_group.add_argument("--execute-verbose", default=False)
-    execute_group.add_argument("--execute-output-path", default="/tmp/output")
+    execute_group.add_argument("--execute-args", nargs="*", default=[])
+    execute_group.add_argument("--execute-capture", action="store_true", default=True)
+    execute_group.add_argument("--execute-output-path", default="")
 
 
 def add_s3_group(parser):
@@ -31,7 +37,8 @@ def add_s3_group(parser):
 def add_storage_group(parser):
     storage_group = parser.add_argument_group(title="Storage arguments")
     storage_providers = storage_group.add_mutually_exclusive_group()
-    storage_providers.add_argument("--storage-s3", default=False, action="store_true")
+    storage_providers.add_argument("--storage-s3", action="store_true")
+    storage_group.add_argument("--storage-enable", action="store_true", default=False)
     storage_group.add_argument("--storage-endpoint", default="")
     storage_group.add_argument("--storage-session-vars", default="")
     storage_group.add_argument("--storage-input-path", default="/tmp/input")
@@ -39,8 +46,9 @@ def add_storage_group(parser):
 
 
 argument_groups = {
-    RUN: add_execute_group,
-    STAGING_STORAGE: add_storage_group,
+    EXECUTE: add_execute_group,
+    JOB: add_job_meta_group,
+    STORAGE: add_storage_group,
     S3: add_s3_group,
 }
 

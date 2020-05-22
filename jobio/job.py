@@ -1,8 +1,9 @@
 import boto3
 import os
 import subprocess
+import time
 from jobio.cli.args import extract_arguments
-from jobio.defaults import JOB, S3, STAGING_STORAGE
+from jobio.defaults import EXECUTE, JOB, S3, STORAGE, JOB_DEFAULT_NAME
 from jobio.storage.staging import required_staging_fields, required_staging_values
 from jobio.storage.s3 import (
     bucket_exists,
@@ -20,34 +21,35 @@ from jobio.util import (
     save_results,
 )
 
-required_job_fields = {
+
+required_execute_fields = {
     "command": str,
     "args": list,
-    "verbose": bool,
+    "capture": bool,
     "output_path": str,
 }
 
-required_job_values = {
+required_execute_values = {
     "command": True,
     "args": False,
-    "verbose": False,
+    "capture": False,
     "output_path": False,
 }
 
 
-def process(job_kwargs=None):
-    if not job_kwargs:
-        job_kwargs = {}
+def process(execute_kwargs=None):
+    if not execute_kwargs:
+        execute_kwargs = {}
 
-    command = [job_kwargs["command"]]
-    if "args" in job_kwargs:
-        command.extend(job_kwargs["args"])
+    command = [execute_kwargs["command"]]
+    if "args" in execute_kwargs:
+        command.extend(execute_kwargs["args"])
 
     # Subprocess
-    result = subprocess.run(command, capture_output=job_kwargs["verbose_output"])
+    result = subprocess.run(command, capture_output=execute_kwargs["capture"])
     output_results = {}
     if hasattr(result, "args"):
-        output_results.update({"command": str(getattr(result, "args"))})
+        output_results.update({"command": " ".join((getattr(result, "args")))})
     if hasattr(result, "returncode"):
         output_results.update({"returncode": str(getattr(result, "returncode"))})
     if hasattr(result, "stderr"):
@@ -59,106 +61,137 @@ def process(job_kwargs=None):
 
 def submit(args):
     job_dict = vars(extract_arguments(args, [JOB]))
-    valid_job_types = validate_dict_types(job_dict, required_job_fields)
-    valid_job_values = validate_dict_values(job_dict, required_job_values)
+    if "name" not in job_dict or not job_dict["name"]:
+        since_epoch = int(time.time())
+        job_dict["name"] = "{}-{}".format(JOB_DEFAULT_NAME, since_epoch)
+
+    execute_dict = vars(extract_arguments(args, [EXECUTE]))
+    valid_job_types = validate_dict_types(
+        execute_dict, required_fields=required_execute_fields, verbose=job_dict["debug"]
+    )
+    valid_job_values = validate_dict_values(
+        execute_dict, required_values=required_execute_values, verbose=job_dict["debug"]
+    )
 
     if not valid_job_types:
         raise TypeError(
-            "Incorrect required job arguments were provided: {}".format(valid_job_types)
+            "Incorrect required executable arguments were provided: {}".format(
+                valid_job_types
+            )
+        )
+    if not valid_job_values:
+        raise ValueError(
+            "Missing required executable values: {}".format(valid_job_values)
         )
 
-    if not valid_job_values:
-        raise ValueError("Missing required job arguments: {}".format(valid_job_values))
-
-    staging_storage_dict = vars(extract_arguments(args, [STAGING_STORAGE]))
+    staging_storage_dict = vars(extract_arguments(args, [STORAGE]))
     s3_dict = vars(extract_arguments(args, [S3]))
 
     valid_staging_types = validate_dict_types(
-        staging_storage_dict, required_staging_fields
+        staging_storage_dict,
+        required_fields=required_staging_fields,
+        verbose=job_dict["debug"],
     )
     valid_staging_values = validate_dict_values(
-        staging_storage_dict, required_staging_values
+        staging_storage_dict,
+        required_values=required_staging_values,
+        verbose=job_dict["debug"],
     )
 
     # Dynamically get secret credentials
-    if valid_staging_types and valid_staging_values:
-        load_session_vars = dict(aws_access_key_id=None, aws_secret_access_key=None)
-        loaded_session_vars = load_s3_session_vars(
-            staging_storage_dict["session_vars"], load_session_vars
-        )
-        for k, v in loaded_session_vars.items():
-            s3_dict.update({k: v})
-
-    valid_s3_types = validate_dict_types(s3_dict, required_s3_fields)
-    valid_s3_values = validate_dict_values(s3_dict, required_s3_values)
-
-    if valid_s3_types and valid_s3_values:
-        s3_resource = boto3.resource("s3", **s3_dict)
-        # Load aws credentials
-        expanded = expand_s3_bucket(
-            s3_resource,
-            s3_dict["bucket_name"],
-            target_dir=staging_storage_dict["input_path"],
-        )
-        if not expanded:
-            raise RuntimeError(
-                "Failed to expand the target bucket: {}".format(s3_dict["bucket_name"])
+    if staging_storage_dict["enable"]:
+        if valid_staging_types and valid_staging_values:
+            load_session_vars = dict(aws_access_key_id=None, aws_secret_access_key=None)
+            loaded_session_vars = load_s3_session_vars(
+                staging_storage_dict["session_vars"], load_session_vars
             )
+            for k, v in loaded_session_vars.items():
+                s3_dict.update({k: v})
 
-    result = process(job_kwargs=job_dict)
-    saved = False
-    # Put results into the put path
-    result_output_file = "{}.txt".format(job_dict["name"])
-
-    if valid_staging_types and valid_staging_values:
-        full_result_path = os.path.join(
-            staging_storage_dict["output_path"], result_output_file
+    if staging_storage_dict["enable"]:
+        valid_s3_types = validate_dict_types(
+            s3_dict, required_fields=required_s3_fields, verbose=job_dict["debug"]
         )
-    else:
-        full_result_path = os.path.abspath(result_output_file)
-    saved = save_results(full_result_path, result)
-
-    if not saved:
-        raise RuntimeError(
-            "Failed to save the results of job: {}".format(job_dict["name"])
+        valid_s3_values = validate_dict_values(
+            s3_dict, required_values=required_s3_values, verbose=job_dict["debug"]
         )
 
-    print("Saved results for: {}".format(job_dict["name"]))
-
-    if (
-        valid_s3_types
-        and valid_s3_values
-        and valid_staging_types
-        and valid_staging_values
-    ):
-        if not bucket_exists(s3_resource.meta.client, s3_dict["bucket_name"]):
-            # TODO, load region from AWS config
-            created = create_bucket(
-                s3_resource.meta.client,
+        if valid_s3_types and valid_s3_values:
+            s3_resource = boto3.resource("s3", **s3_dict)
+            # Load aws credentials
+            expanded = expand_s3_bucket(
+                s3_resource,
                 s3_dict["bucket_name"],
-                CreateBucketConfiguration={"LocationConstraint": s3_dict["region"]},
+                target_dir=staging_storage_dict["input_path"],
             )
-            if not created:
+            if not expanded:
                 raise RuntimeError(
-                    "Failed to create results bucket: {}".format(s3_dict["bucket_name"])
+                    "Failed to expand the target bucket: {}".format(
+                        s3_dict["bucket_name"]
+                    )
                 )
 
-        uploaded = upload_directory_to_s3(
-            s3_resource.meta.client,
-            staging_storage_dict["output_path"],
-            s3_dict["bucket_name"],
-        )
-        if not uploaded:
-            print("Failed to upload results")
+    result = process(execute_kwargs=execute_dict)
+    saved = False
+    final_result_path = ""
 
-        # Cleanout local results
-        if os.path.exists(os.path.dirname(full_result_path)):
-            if not remove_dir(os.path.dirname(full_result_path)):
-                print("Failed to remove results after upload")
-        # TODO, cleanout inputs
-        if os.path.exists(staging_storage_dict["input_path"]):
-            if not remove_dir(staging_storage_dict["input_path"]):
-                print("Failed to remove input after upload")
+    # Put results into the put path
+    if "output_path" in execute_dict:
+        root, ext = os.path.splitext(execute_dict["output_path"])
+        print("ext: {}".format(ext))
+        if ext:
+            final_result_path = execute_dict["output_path"]
+        else:
+            # A directory path
+            # Generate a filename to put inside the directory
+            result_output_file = "{}.txt".format(job_dict["name"])
+            final_result_path = os.path.join(
+                execute_dict["output_path"], result_output_file
+            )
+        if final_result_path:
+            saved = save_results(final_result_path, result)
+            if not saved:
+                raise RuntimeError(
+                    "Failed to save the results of job: {}".format(job_dict["name"])
+                )
 
+    if staging_storage_dict["enable"]:
+        if (
+            valid_s3_types
+            and valid_s3_values
+            and valid_staging_types
+            and valid_staging_values
+        ):
+            if not bucket_exists(s3_resource.meta.client, s3_dict["bucket_name"]):
+                # TODO, load region from AWS config
+                created = create_bucket(
+                    s3_resource.meta.client,
+                    s3_dict["bucket_name"],
+                    CreateBucketConfiguration={"LocationConstraint": s3_dict["region"]},
+                )
+                if not created:
+                    raise RuntimeError(
+                        "Failed to create results bucket: {}".format(
+                            s3_dict["bucket_name"]
+                        )
+                    )
+
+            uploaded = upload_directory_to_s3(
+                s3_resource.meta.client,
+                staging_storage_dict["output_path"],
+                s3_dict["bucket_name"],
+            )
+            if not uploaded:
+                print("Failed to upload results")
+
+            # Cleanout local results
+            if os.path.exists(os.path.dirname(full_result_path)):
+                if not remove_dir(os.path.dirname(full_result_path)):
+                    print("Failed to remove results after upload")
+            # TODO, cleanout inputs
+            if os.path.exists(staging_storage_dict["input_path"]):
+                if not remove_dir(staging_storage_dict["input_path"]):
+                    print("Failed to remove input after upload")
+
+    print("{}".format(result))
     # TODO, print output to stdout
-    print("Finished")
