@@ -66,7 +66,7 @@ def validate_dict_values(input_dict, required_values=None, verbose=False):
 
 def save_results(path, results):
     save_dir = os.path.dirname(path)
-    if not os.path.exists(save_dir):
+    if save_dir and not os.path.exists(save_dir):
         if not create_dir(save_dir):
             return False
     try:

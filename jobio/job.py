@@ -138,7 +138,6 @@ def submit(args):
     # Put results into the put path
     if "output_path" in execute_dict:
         root, ext = os.path.splitext(execute_dict["output_path"])
-        print("ext: {}".format(ext))
         if ext:
             final_result_path = execute_dict["output_path"]
         else:
