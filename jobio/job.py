@@ -184,8 +184,8 @@ def submit(args):
                 print("Failed to upload results")
 
             # Cleanout local results
-            if os.path.exists(os.path.dirname(full_result_path)):
-                if not remove_dir(os.path.dirname(full_result_path)):
+            if os.path.exists(os.path.dirname(final_result_path)):
+                if not remove_dir(os.path.dirname(final_result_path)):
                     print("Failed to remove results after upload")
             # TODO, cleanout inputs
             if os.path.exists(staging_storage_dict["input_path"]):
