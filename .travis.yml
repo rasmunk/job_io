@@ -6,17 +6,20 @@ python:
 - '3.8'
 install:
 - pip install -r requirements.txt
+- pip install -r tests/requirements.txt
 - python setup.py install
 script:
 - python setup.py check -rms
+- flake8
 - pytest
 deploy:
   distributions: sdist bdist_wheel
   provider: pypi
   skip_existing: true
-  skip_cleanup: true
-  user: __token__
+  cleanup: true
+  username: "__token__"
   on:
     tags: true
     branch: master
   password:
+    secure: BsL60lap4qN0qlSogkVk49ji8uYweanNpENIam+ed3jX7b94gbjxNsH0JIBmpo5K9PUCGgp28261Q+VhLEjIq53Aw1LV1ee808TaZTiXwD75NVwUJS4QeNNEmehZ3BdFait5/m4+N0mq8C68ed/h+mCF0NpoI/9nSFwmEbZ1YzY1qOlZ1zoEg4d0NjiagS2R2fc8xQR4UIpXojCzGQUWYi6GobWYsH6Oqw7ZFheHfxgRJIMEIZdBmniiWD2Z9XQ0Enu0O+G4ocsM9mE0gC5K9OBER24VpwPAN3F8/cblDlvjY8oUncPsWukr6UBMc25hv/TirnaZtCS+0EYIk9d+Mpg4W/GWAyLf7oIVZOAesch0XTB/f4jix9rGYGwFw+SVdcZniSoiHmWWfGh9u34D1spkBIFmiFIdz00A/yrmYcV2AqFuTM3XHS6yow7tVd6fd1EzBlBsIYvUuKZaLgRyWtOeejDIzyRiHohqRyCbrsREkNU07zA/EpTzIdcDXnmvGBvw55SK4/dOZzJmr3LpqwT7jKixemEE477ZZ00SESgCx2k3/I9IGcmisDIdF5vlXIsD3eGWexqlkG5yCsBdPxS2W01mZgyUBG1iSyPERZg8MyowCAJmna4cCucGomp86Oireox0NOaJDuVduchpBwsNfTST6gMF5MVhcJfUSiQ=
