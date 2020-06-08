@@ -11,7 +11,7 @@ install:
 script:
 - python setup.py check -rms
 - flake8
-- pytest
+- pytest -s -v tests/
 deploy:
   distributions: sdist bdist_wheel
   provider: pypi
