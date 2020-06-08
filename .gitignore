@@ -132,3 +132,7 @@ dmypy.json
 
 # Ignore generated results
 job-*
+
+# Ignore aws files
+.aws/
+aws.tar.gz
