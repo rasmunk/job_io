@@ -80,3 +80,24 @@ def save_results(path, results):
     except IOError as err:
         print("Failed to save results: {}".format(err))
     return False
+
+
+def load_kubernetes_secrets(directory, secret_dict, strip_file_newline=True):
+    loaded_secrets = {}
+    for secret_name, _ in secret_dict.items():
+        value_path = os.path.join(directory, secret_name)
+        if os.path.exists(value_path):
+            if os.path.islink(value_path):
+                value_path = os.path.realpath(value_path)
+            if os.path.isfile(value_path) and not os.path.islink(value_path):
+                content = None
+                try:
+                    with open(value_path, "rb") as fh:
+                        content = fh.read()
+                except IOError as err:
+                    print("Failed to read file: {}".format(err))
+                decoded = content.decode("utf-8")
+                if strip_file_newline:
+                    decoded = decoded.replace("\n", "")
+                loaded_secrets[secret_name] = decoded
+    return loaded_secrets

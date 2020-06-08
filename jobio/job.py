@@ -12,13 +12,13 @@ from jobio.storage.s3 import (
     required_s3_fields,
     required_s3_values,
     upload_directory_to_s3,
-    load_s3_session_vars,
 )
 from jobio.util import (
     validate_dict_types,
     validate_dict_values,
     remove_dir,
     save_results,
+    load_kubernetes_secrets,
 )
 
 
@@ -100,12 +100,13 @@ def submit(args):
 
     # Dynamically get secret credentials
     if staging_storage_dict["enable"]:
+
         if valid_staging_types and valid_staging_values:
-            load_session_vars = dict(aws_access_key_id=None, aws_secret_access_key=None)
-            loaded_session_vars = load_s3_session_vars(
-                staging_storage_dict["session_vars"], load_session_vars
+            load_secrets = ["aws_access_key_id", "aws_secret_access_key"]
+            loaded_secrests = load_kubernetes_secrets(
+                staging_storage_dict["session_vars"], load_secrets
             )
-            for k, v in loaded_session_vars.items():
+            for k, v in loaded_secrests.items():
                 s3_dict.update({k: v})
 
     if staging_storage_dict["enable"]:

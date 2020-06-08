@@ -1,44 +1,24 @@
 import botocore
+import boto3
 import copy
 import os
 
 
-required_s3_fields = {
+required_s3_fields = {"region_name": str, "endpoint_url": str}
+
+required_s3_values = {"region_name": True, "endpoint_url": True}
+
+required_bucket_fields = {
     "bucket_name": str,
     "bucket_input_prefix": str,
     "bucket_output_prefix": str,
-    "profile_name": str,
-    "region_name": str,
 }
 
-required_s3_values = {
-    "bucket_name": False,
+required_bucket_values = {
+    "bucket_name": True,
     "bucket_input_prefix": False,
     "bucket_output_prefix": False,
-    "profile_name": True,
-    "region_name": True,
 }
-
-
-def load_s3_session_vars(directory, session_vars, strip_newline=True):
-    loaded_settings = {}
-    for k, v in session_vars.items():
-        value_path = os.path.join(directory, k)
-        if os.path.exists(value_path):
-            if os.path.islink(value_path):
-                value_path = os.path.realpath(value_path)
-            if os.path.isfile(value_path) and not os.path.islink(value_path):
-                content = None
-                try:
-                    with open(value_path, "rb") as fh:
-                        content = fh.read()
-                except IOError as err:
-                    print("Failed to read file: {}".format(err))
-                decoded = content.decode("utf-8")
-                if strip_newline:
-                    decoded = decoded.replace("\n", "")
-                loaded_settings[k] = decoded
-    return loaded_settings
 
 
 def upload_to_s3(s3_client, local_path, s3_path, bucket_name):
@@ -61,7 +41,9 @@ def upload_directory_to_s3(client, path, bucket_name, s3_prefix="input"):
             # Upload
             if s3_prefix:
                 s3_path = os.path.join(s3_prefix, s3_path)
-            if not client.upload_file(local_path, bucket_name, s3_path):
+            try:
+                client.upload_file(local_path, bucket_name, s3_path)
+            except Exception:
                 return False
     return True
 
@@ -82,8 +64,21 @@ def create_bucket(s3_client, bucket_name, **kwargs):
     return bucket
 
 
+def delete_bucket(s3_client, bucket_name, **kwargs):
+    return s3_client.delete_bucket(Bucket=bucket_name, **kwargs)
+
+
+def delete_objects(s3_resource, bucket_name):
+    bucket = s3_resource.Bucket(bucket_name)
+    objects_keys = [{"Key": obj.key} for obj in bucket.objects.all()]
+    return s3_resource.meta.client.delete_objects(
+        Bucket=bucket_name, Delete={"Objects": objects_keys}
+    )
+
+
 # Accept parameters to
 def expand_s3_bucket(s3_resource, bucket_name, target_dir=None, prefix="input"):
+    """ Expands the content of the specified bucket into the target_dir """
     bucket = s3_resource.Bucket(bucket_name)
     for obj in bucket.objects.filter(Prefix=prefix):
         obj_path = copy.deepcopy(obj.key)
@@ -99,3 +94,7 @@ def expand_s3_bucket(s3_resource, bucket_name, target_dir=None, prefix="input"):
             os.makedirs(dir_path)
         bucket.download_file(obj.key, full_path)
     return True
+
+
+def stage_s3_resource(**kwargs):
+    return boto3.resource("s3", **kwargs)

@@ -1,9 +1,8 @@
 import unittest
-from jobio.job import process, submit
+from jobio.job import process
 
 
 class TestJOB(unittest.TestCase):
-
     def test_process(self):
         execute_kwargs = dict(command="/bin/echo", args=["Hello World"], capture=True)
         results = process(execute_kwargs=execute_kwargs)
