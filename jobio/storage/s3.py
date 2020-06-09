@@ -4,9 +4,11 @@ import copy
 import os
 
 
-required_s3_fields = {"region_name": str, "endpoint_url": str}
+required_s3_fields = {"region_name": str}
 
-required_s3_values = {"region_name": True, "endpoint_url": True}
+required_s3_values = {"region_name": True}
+
+valid_s3_resource_fields = ["region_name"]
 
 required_bucket_fields = {
     "bucket_name": str,

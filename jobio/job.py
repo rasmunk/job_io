@@ -3,12 +3,15 @@ import os
 import subprocess
 import time
 from jobio.cli.args import extract_arguments
-from jobio.defaults import EXECUTE, JOB, S3, STORAGE, JOB_DEFAULT_NAME
+from jobio.defaults import EXECUTE, JOB, S3, BUCKET, STORAGE, JOB_DEFAULT_NAME
 from jobio.storage.staging import required_staging_fields, required_staging_values
 from jobio.storage.s3 import (
     bucket_exists,
     create_bucket,
     expand_s3_bucket,
+    valid_s3_resource_fields,
+    required_bucket_fields,
+    required_bucket_values,
     required_s3_fields,
     required_s3_values,
     upload_directory_to_s3,
@@ -86,51 +89,78 @@ def submit(args):
 
     staging_storage_dict = vars(extract_arguments(args, [STORAGE]))
     s3_dict = vars(extract_arguments(args, [S3]))
-
-    valid_staging_types = validate_dict_types(
-        staging_storage_dict,
-        required_fields=required_staging_fields,
-        verbose=job_dict["debug"],
-    )
-    valid_staging_values = validate_dict_values(
-        staging_storage_dict,
-        required_values=required_staging_values,
-        verbose=job_dict["debug"],
-    )
+    bucket_dict = vars(extract_arguments(args, [BUCKET]))
 
     # Dynamically get secret credentials
     if staging_storage_dict["enable"]:
 
-        if valid_staging_types and valid_staging_values:
-            load_secrets = ["aws_access_key_id", "aws_secret_access_key"]
-            loaded_secrests = load_kubernetes_secrets(
-                staging_storage_dict["session_vars"], load_secrets
-            )
-            for k, v in loaded_secrests.items():
-                s3_dict.update({k: v})
-
-    if staging_storage_dict["enable"]:
-        valid_s3_types = validate_dict_types(
-            s3_dict, required_fields=required_s3_fields, verbose=job_dict["debug"]
-        )
-        valid_s3_values = validate_dict_values(
-            s3_dict, required_values=required_s3_values, verbose=job_dict["debug"]
+        # Validate bucket arguments
+        validate_dict_types(
+            bucket_dict,
+            required_fields=required_bucket_fields,
+            verbose=job_dict["debug"],
+            throw=True,
         )
 
-        if valid_s3_types and valid_s3_values:
-            s3_resource = boto3.resource("s3", **s3_dict)
-            # Load aws credentials
-            expanded = expand_s3_bucket(
-                s3_resource,
-                s3_dict["bucket_name"],
-                target_dir=staging_storage_dict["input_path"],
-            )
-            if not expanded:
-                raise RuntimeError(
-                    "Failed to expand the target bucket: {}".format(
-                        s3_dict["bucket_name"]
-                    )
+        validate_dict_values(
+            bucket_dict,
+            required_values=required_bucket_values,
+            verbose=job_dict["debug"],
+            throw=True,
+        )
+
+        validate_dict_types(
+            staging_storage_dict,
+            required_fields=required_staging_fields,
+            verbose=job_dict["debug"],
+            throw=True,
+        )
+        validate_dict_values(
+            staging_storage_dict,
+            required_values=required_staging_values,
+            verbose=job_dict["debug"],
+            throw=True,
+        )
+
+        # Validate staging arguments
+        load_secrets = ["aws_access_key_id", "aws_secret_access_key"]
+        loaded_secrests = load_kubernetes_secrets(
+            staging_storage_dict["session_vars"], load_secrets
+        )
+        for k, v in loaded_secrests.items():
+            s3_dict.update({k: v})
+
+        validate_dict_types(
+            s3_dict,
+            required_fields=required_s3_fields,
+            verbose=job_dict["debug"],
+            throw=True,
+        )
+        validate_dict_values(
+            s3_dict,
+            required_values=required_s3_values,
+            verbose=job_dict["debug"],
+            throw=True,
+        )
+
+        # Only used valid_s3_fields
+        resources_fields = {
+            k: v for k, v in s3_dict.items() if k in valid_s3_resource_fields
+        }
+
+        s3_resource = boto3.resource("s3", **resources_fields)
+        # Load aws credentials
+        expanded = expand_s3_bucket(
+            s3_resource,
+            bucket_dict["bucket_name"],
+            target_dir=staging_storage_dict["input_path"],
+        )
+        if not expanded:
+            raise RuntimeError(
+                "Failed to expand the target bucket: {}".format(
+                    bucket_dict["bucket_name"]
                 )
+            )
 
     result = process(execute_kwargs=execute_dict)
     saved = False
@@ -156,42 +186,36 @@ def submit(args):
                 )
 
     if staging_storage_dict["enable"]:
-        if (
-            valid_s3_types
-            and valid_s3_values
-            and valid_staging_types
-            and valid_staging_values
-        ):
-            if not bucket_exists(s3_resource.meta.client, s3_dict["bucket_name"]):
-                # TODO, load region from AWS config
-                created = create_bucket(
-                    s3_resource.meta.client,
-                    s3_dict["bucket_name"],
-                    CreateBucketConfiguration={"LocationConstraint": s3_dict["region"]},
-                )
-                if not created:
-                    raise RuntimeError(
-                        "Failed to create results bucket: {}".format(
-                            s3_dict["bucket_name"]
-                        )
-                    )
-
-            uploaded = upload_directory_to_s3(
+        if not bucket_exists(s3_resource.meta.client, bucket_dict["bucket_name"]):
+            # TODO, load region from AWS config
+            created = create_bucket(
                 s3_resource.meta.client,
-                staging_storage_dict["output_path"],
-                s3_dict["bucket_name"],
+                bucket_dict["bucket_name"],
+                CreateBucketConfiguration={"LocationConstraint": s3_dict["region"]},
             )
-            if not uploaded:
-                print("Failed to upload results")
+            if not created:
+                raise RuntimeError(
+                    "Failed to create results bucket: {}".format(
+                        bucket_dict["bucket_name"]
+                    )
+                )
 
-            # Cleanout local results
-            if os.path.exists(os.path.dirname(final_result_path)):
-                if not remove_dir(os.path.dirname(final_result_path)):
-                    print("Failed to remove results after upload")
-            # TODO, cleanout inputs
-            if os.path.exists(staging_storage_dict["input_path"]):
-                if not remove_dir(staging_storage_dict["input_path"]):
-                    print("Failed to remove input after upload")
+        uploaded = upload_directory_to_s3(
+            s3_resource.meta.client,
+            staging_storage_dict["output_path"],
+            bucket_dict["bucket_name"],
+        )
+        if not uploaded:
+            print("Failed to upload results")
+
+        # Cleanout local results
+        if os.path.exists(os.path.dirname(final_result_path)):
+            if not remove_dir(os.path.dirname(final_result_path)):
+                print("Failed to remove results after upload")
+        # TODO, cleanout inputs
+        if os.path.exists(staging_storage_dict["input_path"]):
+            if not remove_dir(staging_storage_dict["input_path"]):
+                print("Failed to remove input after upload")
 
     print("{}".format(result))
     # TODO, print output to stdout
