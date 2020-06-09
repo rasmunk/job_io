@@ -24,14 +24,15 @@ current_dir = os.path.dirname(here)
 class TestStorage(unittest.TestCase):
     def setUp(self):
         self.staging_options = dict(
-            enable=True, session_vars="", input_path="", output_path="results",
-        )
-
-        self.s3_options = dict(
-            region_name="eu-frankfurt-1",
+            enable=True,
+            session_vars="",
+            input_path="",
+            output_path="results",
             endpoint_url="https://ku.compat.objectstorage.eu-frankfurt-1"
             ".oraclecloud.com",
         )
+
+        self.s3_options = dict(region_name="eu-frankfurt-1")
 
         self.bucket_options = dict(
             bucket_name="bucket_test_name",
@@ -79,11 +80,15 @@ class TestStorage(unittest.TestCase):
         )
 
     def test_s3_resource(self):
-        s3_resource = stage_s3_resource(**self.s3_options)
+        s3_resource = stage_s3_resource(
+            endpoint_url=self.staging_options["endpoint_url"], **self.s3_options
+        )
         self.assertIsNotNone(s3_resource)
 
     def test_create_delete_bucket(self):
-        s3_resource = stage_s3_resource(**self.s3_options)
+        s3_resource = stage_s3_resource(
+            endpoint_url=self.staging_options["endpoint_url"], **self.s3_options
+        )
         self.assertIsNotNone(s3_resource)
 
         bucket = create_bucket(
@@ -100,7 +105,9 @@ class TestStorage(unittest.TestCase):
 
     def test_upload_expand_bucket(self):
         # Expand test directory
-        s3_resource = stage_s3_resource(**self.s3_options)
+        s3_resource = stage_s3_resource(
+            endpoint_url=self.staging_options["endpoint_url"], **self.s3_options
+        )
 
         bucket_options = dict(
             bucket_name="jobio",
