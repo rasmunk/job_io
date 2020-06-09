@@ -1,5 +1,6 @@
 .. image:: https://travis-ci.com/rasmunk/jobio.svg?branch=master
     :target: https://travis-ci.com/rasmunk/jobio
+
 =====
 jobio
 =====
