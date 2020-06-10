@@ -94,10 +94,10 @@ def save_results(path, results):
     return False
 
 
-def load_kubernetes_secrets(directory, secret_dict, strip_file_newline=True):
+def load_kubernetes_secrets(directory, secret_keys, strip_file_newline=True):
     loaded_secrets = {}
-    for secret_name, _ in secret_dict.items():
-        value_path = os.path.join(directory, secret_name)
+    for secret_key in secret_keys:
+        value_path = os.path.join(directory, secret_key)
         if os.path.exists(value_path):
             if os.path.islink(value_path):
                 value_path = os.path.realpath(value_path)
@@ -111,5 +111,5 @@ def load_kubernetes_secrets(directory, secret_dict, strip_file_newline=True):
                 decoded = content.decode("utf-8")
                 if strip_file_newline:
                     decoded = decoded.replace("\n", "")
-                loaded_secrets[secret_name] = decoded
+                loaded_secrets[secret_key] = decoded
     return loaded_secrets

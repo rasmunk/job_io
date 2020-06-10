@@ -125,7 +125,7 @@ def submit(args):
         # Validate staging arguments
         load_secrets = ["aws_access_key_id", "aws_secret_access_key"]
         loaded_secrests = load_kubernetes_secrets(
-            staging_storage_dict["session_vars"], load_secrets
+            staging_storage_dict["secrets_dir"], load_secrets
         )
         for k, v in loaded_secrests.items():
             s3_dict.update({k: v})
@@ -152,14 +152,12 @@ def submit(args):
         # Load aws credentials
         expanded = expand_s3_bucket(
             s3_resource,
-            bucket_dict["bucket_name"],
+            bucket_dict["name"],
             target_dir=staging_storage_dict["input_path"],
         )
         if not expanded:
             raise RuntimeError(
-                "Failed to expand the target bucket: {}".format(
-                    bucket_dict["bucket_name"]
-                )
+                "Failed to expand the target bucket: {}".format(bucket_dict["name"])
             )
 
     result = process(execute_kwargs=execute_dict)
@@ -186,24 +184,22 @@ def submit(args):
                 )
 
     if staging_storage_dict["enable"]:
-        if not bucket_exists(s3_resource.meta.client, bucket_dict["bucket_name"]):
+        if not bucket_exists(s3_resource.meta.client, bucket_dict["name"]):
             # TODO, load region from AWS config
             created = create_bucket(
                 s3_resource.meta.client,
-                bucket_dict["bucket_name"],
+                bucket_dict["name"],
                 CreateBucketConfiguration={"LocationConstraint": s3_dict["region"]},
             )
             if not created:
                 raise RuntimeError(
-                    "Failed to create results bucket: {}".format(
-                        bucket_dict["bucket_name"]
-                    )
+                    "Failed to create results bucket: {}".format(bucket_dict["name"])
                 )
 
         uploaded = upload_directory_to_s3(
             s3_resource.meta.client,
             staging_storage_dict["output_path"],
-            bucket_dict["bucket_name"],
+            bucket_dict["name"],
         )
         if not uploaded:
             print("Failed to upload results")

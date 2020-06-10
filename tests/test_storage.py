@@ -25,19 +25,17 @@ class TestStorage(unittest.TestCase):
     def setUp(self):
         self.staging_options = dict(
             enable=True,
-            session_vars="",
+            secrets_dir="",
             input_path="",
             output_path="results",
-            endpoint_url="https://ku.compat.objectstorage.eu-frankfurt-1"
+            endpoint="https://ku.compat.objectstorage.eu-frankfurt-1"
             ".oraclecloud.com",
         )
 
         self.s3_options = dict(region_name="eu-frankfurt-1")
 
         self.bucket_options = dict(
-            bucket_name="bucket_test_name",
-            bucket_input_prefix="input",
-            bucket_output_prefix="output",
+            name="bucket_test_name", input_prefix="input", output_prefix="output",
         )
 
     def tearDown(self):
@@ -81,24 +79,20 @@ class TestStorage(unittest.TestCase):
 
     def test_s3_resource(self):
         s3_resource = stage_s3_resource(
-            endpoint_url=self.staging_options["endpoint_url"], **self.s3_options
+            endpoint_url=self.staging_options["endpoint"], **self.s3_options
         )
         self.assertIsNotNone(s3_resource)
 
     def test_create_delete_bucket(self):
         s3_resource = stage_s3_resource(
-            endpoint_url=self.staging_options["endpoint_url"], **self.s3_options
+            endpoint_url=self.staging_options["endpoint"], **self.s3_options
         )
         self.assertIsNotNone(s3_resource)
 
-        bucket = create_bucket(
-            s3_resource.meta.client, self.bucket_options["bucket_name"]
-        )
+        bucket = create_bucket(s3_resource.meta.client, self.bucket_options["name"])
 
         self.assertIsInstance(bucket, dict)
-        deleted = delete_bucket(
-            s3_resource.meta.client, self.bucket_options["bucket_name"]
-        )
+        deleted = delete_bucket(s3_resource.meta.client, self.bucket_options["name"])
 
         self.assertIsInstance(deleted, dict)
         self.assertEqual(204, deleted["ResponseMetadata"]["HTTPStatusCode"])
@@ -106,21 +100,19 @@ class TestStorage(unittest.TestCase):
     def test_upload_expand_bucket(self):
         # Expand test directory
         s3_resource = stage_s3_resource(
-            endpoint_url=self.staging_options["endpoint_url"], **self.s3_options
+            endpoint_url=self.staging_options["endpoint"], **self.s3_options
         )
 
         bucket_options = dict(
-            bucket_name="jobio",
-            bucket_input_prefix="input",
-            bucket_output_prefix="output",
+            name="jobio", input_prefix="input", output_prefix="output",
         )
         local_directory = os.path.join(current_dir, "res", "job_input")
 
-        bucket = create_bucket(s3_resource.meta.client, bucket_options["bucket_name"])
+        bucket = create_bucket(s3_resource.meta.client, bucket_options["name"])
         self.assertIsInstance(bucket, dict)
 
         uploaded = upload_directory_to_s3(
-            s3_resource.meta.client, local_directory, bucket_options["bucket_name"]
+            s3_resource.meta.client, local_directory, bucket_options["name"]
         )
         self.assertTrue(uploaded)
 
@@ -128,14 +120,12 @@ class TestStorage(unittest.TestCase):
         if not os.path.exists(expand_dir):
             self.assertTrue(create_dir(expand_dir))
 
-        expaned = expand_s3_bucket(
-            s3_resource, bucket_options["bucket_name"], expand_dir
-        )
+        expaned = expand_s3_bucket(s3_resource, bucket_options["name"], expand_dir)
         self.assertTrue(expaned)
 
-        deleted = delete_objects(s3_resource, bucket_options["bucket_name"])
+        deleted = delete_objects(s3_resource, bucket_options["name"])
 
         # Delete all content
-        deleted = delete_bucket(s3_resource.meta.client, bucket_options["bucket_name"])
+        deleted = delete_bucket(s3_resource.meta.client, bucket_options["name"])
         self.assertIsInstance(deleted, dict)
         self.assertEqual(204, deleted["ResponseMetadata"]["HTTPStatusCode"])

@@ -11,15 +11,15 @@ required_s3_values = {"region_name": True}
 valid_s3_resource_fields = ["region_name"]
 
 required_bucket_fields = {
-    "bucket_name": str,
-    "bucket_input_prefix": str,
-    "bucket_output_prefix": str,
+    "name": str,
+    "input_prefix": str,
+    "output_prefix": str,
 }
 
 required_bucket_values = {
-    "bucket_name": True,
-    "bucket_input_prefix": False,
-    "bucket_output_prefix": False,
+    "name": True,
+    "input_prefix": False,
+    "output_prefix": False,
 }
 
 

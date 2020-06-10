@@ -1,15 +1,15 @@
 required_staging_fields = {
     "enable": bool,
-    "endpoint_url": str,
-    "session_vars": str,
+    "endpoint": str,
+    "secrets_dir": str,
     "input_path": str,
     "output_path": str,
 }
 
 required_staging_values = {
     "enable": True,
-    "endpoint_url": True,
-    "session_vars": False,
+    "endpoint": True,
+    "secrets_dir": False,
     "input_path": False,
     "output_path": True,
 }
