@@ -145,7 +145,9 @@ def submit(args):
 
         # Only used valid_s3_fields
         resources_fields = {
-            k: v for k, v in s3_dict.items() if k in valid_s3_resource_fields
+            k: v
+            for k, v in s3_dict.items()
+            if k in valid_s3_resource_fields or k in load_secrets
         }
 
         s3_resource = boto3.resource("s3", **resources_fields)
