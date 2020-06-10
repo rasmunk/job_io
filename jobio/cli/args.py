@@ -1,6 +1,7 @@
 import argparse
+import os
+import textwrap
 from argparse import Namespace
-
 from jobio.defaults import EXECUTE, JOB, S3, STORAGE, BUCKET
 
 
@@ -12,10 +13,30 @@ def _get_arguments(arguments, startswith=""):
     return {k: v for k, v in arguments.items() if k.startswith(startswith)}
 
 
+def _get_env_variables(variables, startswith=""):
+    env_vars = {}
+    for var_key, var_type in variables.items():
+        env_argument = "{}_{}".format(startswith, var_key.upper())
+        if env_argument in os.environ:
+            # Ensure the environment value is cast to the correct type
+            value = os.environ[env_argument]
+            if isinstance(var_type(), list):
+                env_vars[var_key] = textwrap.wrap(value)
+            elif isinstance(var_type(), bool):
+                if value == "True" or value == "1":
+                    env_vars[var_key] = True
+                else:
+                    env_vars[var_key] = False
+            else:
+                env_vars[var_key] = value
+    return env_vars
+
+
 def add_job_meta_group(parser):
     meta_group = parser.add_argument_group(title="Job metadata")
     meta_group.add_argument("--job-name", default=False)
     meta_group.add_argument("--job-debug", action="store_true", default=False)
+    meta_group.add_argument("--job-env-override", action="store_true", default=False)
 
 
 def add_execute_group(parser):
@@ -85,4 +106,15 @@ def extract_arguments(arguments, argument_types, strip_group_prefix=True):
             group_args = strip_argument_prefix(group_args, argument_group.lower() + "_")
             stripped_args.update(group_args)
         return Namespace(**stripped_args)
+    return {}
+
+
+def extract_env_variables(variables, variable_types, strip_group_prefix=True):
+    if strip_group_prefix:
+        stripped_env_vars = {}
+        for variable_group in variable_types:
+            group_args = _get_env_variables(variables, variable_group.upper())
+            group_args = strip_argument_prefix(group_args, variable_group.lower() + "_")
+            stripped_env_vars.update(group_args)
+        return Namespace(**stripped_env_vars)
     return {}

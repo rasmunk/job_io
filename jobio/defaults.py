@@ -1,6 +1,8 @@
 # Package name
 PACKAGE_NAME = "jobio"
 
+JOBIO = "JOBIO"
+
 # Argument groups defaults
 EXECUTE = "EXECUTE"
 JOB = "JOB"

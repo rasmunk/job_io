@@ -2,8 +2,8 @@ import boto3
 import os
 import subprocess
 import time
-from jobio.cli.args import extract_arguments
-from jobio.defaults import EXECUTE, JOB, S3, BUCKET, STORAGE, JOB_DEFAULT_NAME
+from jobio.cli.args import extract_arguments, extract_env_variables
+from jobio.defaults import EXECUTE, JOB, S3, BUCKET, STORAGE, JOB_DEFAULT_NAME, JOBIO
 from jobio.storage.staging import required_staging_fields, required_staging_values
 from jobio.storage.s3 import (
     bucket_exists,
@@ -23,6 +23,10 @@ from jobio.util import (
     save_results,
     load_kubernetes_secrets,
 )
+
+required_job_fields = {"name": str, "debug": bool, "env_override": bool}
+
+required_job_values = {"name": True, "debug": False, "env_override": False}
 
 
 required_execute_fields = {
@@ -69,6 +73,18 @@ def submit(args):
         job_dict["name"] = "{}-{}".format(JOB_DEFAULT_NAME, since_epoch)
 
     execute_dict = vars(extract_arguments(args, [EXECUTE]))
+    if "env_override" in job_dict and job_dict["env_override"]:
+        job_env_dict = vars(
+            extract_env_variables(required_job_fields, ["{}_{}".format(JOBIO, JOB)])
+        )
+        execute_env_dict = vars(
+            extract_env_variables(
+                required_execute_fields, ["{}_{}".format(JOBIO, EXECUTE)]
+            )
+        )
+        job_dict.update(job_env_dict)
+        execute_dict.update(execute_env_dict)
+
     valid_job_types = validate_dict_types(
         execute_dict, required_fields=required_execute_fields, verbose=job_dict["debug"]
     )
@@ -78,21 +94,58 @@ def submit(args):
 
     if not valid_job_types:
         raise TypeError(
-            "Incorrect required executable arguments were provided: {}".format(
-                valid_job_types
+            "Incorrect required executable arguments "
+            "were provided: {}, required: {}".format(
+                execute_dict, required_execute_fields.keys()
             )
         )
     if not valid_job_values:
         raise ValueError(
-            "Missing required executable values: {}".format(valid_job_values)
+            "Missing required executable values: {}, required: {}".format(
+                execute_dict, required_execute_values.keys()
+            )
         )
 
     staging_storage_dict = vars(extract_arguments(args, [STORAGE]))
-    s3_dict = vars(extract_arguments(args, [S3]))
     bucket_dict = vars(extract_arguments(args, [BUCKET]))
+    s3_dict = vars(extract_arguments(args, [S3]))
+
+    if "env_override" in job_dict and job_dict["env_override"]:
+        staging_storage_env_dict = vars(
+            extract_env_variables(
+                required_staging_fields, ["{}_{}".format(JOBIO, STORAGE)]
+            )
+        )
+
+        bucket_env_dict = vars(
+            extract_env_variables(
+                required_bucket_fields, ["{}_{}".format(JOBIO, BUCKET)]
+            )
+        )
+
+        s3_env_dict = vars(
+            extract_env_variables(required_s3_fields, ["{}_{}".format(JOBIO, S3)])
+        )
+
+        staging_storage_dict.update(staging_storage_env_dict)
+        bucket_dict.update(bucket_env_dict)
+        s3_dict.update(s3_env_dict)
 
     # Dynamically get secret credentials
     if staging_storage_dict["enable"]:
+        validate_dict_types(
+            staging_storage_dict,
+            required_fields=required_staging_fields,
+            verbose=job_dict["debug"],
+            throw=True,
+        )
+        validate_dict_values(
+            staging_storage_dict,
+            required_values=required_staging_values,
+            verbose=job_dict["debug"],
+            throw=True,
+        )
+
         # Validate bucket arguments
         validate_dict_types(
             bucket_dict,
@@ -104,19 +157,6 @@ def submit(args):
         validate_dict_values(
             bucket_dict,
             required_values=required_bucket_values,
-            verbose=job_dict["debug"],
-            throw=True,
-        )
-
-        validate_dict_types(
-            staging_storage_dict,
-            required_fields=required_staging_fields,
-            verbose=job_dict["debug"],
-            throw=True,
-        )
-        validate_dict_values(
-            staging_storage_dict,
-            required_values=required_staging_values,
             verbose=job_dict["debug"],
             throw=True,
         )
