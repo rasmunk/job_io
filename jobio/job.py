@@ -93,7 +93,6 @@ def submit(args):
 
     # Dynamically get secret credentials
     if staging_storage_dict["enable"]:
-
         # Validate bucket arguments
         validate_dict_types(
             bucket_dict,
@@ -149,6 +148,10 @@ def submit(args):
             for k, v in s3_dict.items()
             if k in valid_s3_resource_fields or k in load_secrets
         }
+
+        # Add the s3 endpoint_url to the resource config
+        if resources_fields:
+            resources_fields.update(dict(endpoint_url=staging_storage_dict["endpoint"]))
 
         s3_resource = boto3.resource("s3", **resources_fields)
         # Load aws credentials
