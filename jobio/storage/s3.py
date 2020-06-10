@@ -30,7 +30,7 @@ def upload_to_s3(s3_client, local_path, s3_path, bucket_name):
     return True
 
 
-def upload_directory_to_s3(client, path, bucket_name, s3_prefix="input"):
+def upload_directory_to_s3(client, path, bucket_name, s3_prefix="output"):
     if not os.path.exists(path):
         return False
     for root, dirs, files in os.walk(path):
@@ -79,13 +79,13 @@ def delete_objects(s3_resource, bucket_name):
 
 
 # Accept parameters to
-def expand_s3_bucket(s3_resource, bucket_name, target_dir=None, prefix="input"):
+def expand_s3_bucket(s3_resource, bucket_name, target_dir=None, s3_prefix="input"):
     """ Expands the content of the specified bucket into the target_dir """
     bucket = s3_resource.Bucket(bucket_name)
-    for obj in bucket.objects.filter(Prefix=prefix):
+    for obj in bucket.objects.filter(Prefix=s3_prefix):
         obj_path = copy.deepcopy(obj.key)
-        if prefix:
-            obj_path = os.path.relpath(obj_path, prefix)
+        if s3_prefix:
+            obj_path = os.path.relpath(obj_path, s3_prefix)
 
         if target_dir:
             full_path = os.path.join(target_dir, obj_path)

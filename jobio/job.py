@@ -159,6 +159,7 @@ def submit(args):
             s3_resource,
             bucket_dict["name"],
             target_dir=staging_storage_dict["input_path"],
+            s3_prefix=bucket_dict["input_prefix"],
         )
         if not expanded:
             raise RuntimeError(
@@ -205,6 +206,7 @@ def submit(args):
             s3_resource.meta.client,
             staging_storage_dict["output_path"],
             bucket_dict["name"],
+            s3_prefix=bucket_dict["output_prefix"],
         )
         if not uploaded:
             print("Failed to upload results")
