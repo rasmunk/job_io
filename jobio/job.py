@@ -193,6 +193,14 @@ def submit(args):
         if resources_fields:
             resources_fields.update(dict(endpoint_url=staging_storage_dict["endpoint"]))
 
+        if job_dict["debug"]:
+            print("Storage enable debug, S3 Options: {}".format(s3_dict))
+            print("Storage enable debug, Resource Options: {}".format(resources_fields))
+            print(
+                "Storage enable debug, Staging Options: {}".format(staging_storage_dict)
+            )
+            print("Storage enable debug, Bucket Options: {}".format(bucket_dict))
+
         s3_resource = boto3.resource("s3", **resources_fields)
         # Load aws credentials
         expanded = expand_s3_bucket(
