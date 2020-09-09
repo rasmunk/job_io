@@ -1,0 +1,99 @@
+---
+    - name: Jobio Builder
+      hosts: all
+      vars:
+        python_version: 3.7.7
+
+        ansible_python_interpreter: /usr/bin/python
+        package_version: latest
+        tini_version: v0.19.0
+    
+        job_io:
+          name: job_io
+          dest: /tmp/job_io
+          repo: https://github.com/rasmunk/job_io.git
+    
+        ansible_bender:
+          base_image: "docker.io/library/ubuntu:20.04"
+          target_image:
+            name: "docker.io/nielsbohr/mccode-job-runner:{{ package_version }}"
+            entrypoint: '["/tini", "-g", "--"]'
+            cmd: "job_io"
+          layering: false
+    
+      tasks:
+      - name: install packages
+        yum:
+          state: present
+          name:
+            - git
+            - bind-utils
+      # install python3.7
+      - name: "install python {{ python_version }}"
+          get_url:
+          url: "{{ item.url }}"
+          dest: "{{ item.dest }}"
+          mode: '755'
+          with_items:
+          - { url: "https://www.python.org/ftp/python/{{ python_version }}/Python-{{ python_version }}.tar.xz", dest: "/tmp/python.tar.xz"}
+
+      - name: "create target dir"
+          file:
+          state: directory
+          mode: '755'
+          path: /tmp/python
+
+      - name: "unpack python {{ python_version }}"
+          unarchive:
+          src: "{{ item.src }}"
+          dest: "{{ item.dest }}"
+          remote_src: yes
+          extra_opts: [--strip-components=1]
+          with_items:
+          - { src: "/tmp/python.tar.xz", dest: "/tmp/python/" }
+
+      - name: "configure python {{ python_version }}"
+          command:
+          cmd: ./configure --enable-optimizations
+          chdir: /tmp/python
+
+      - name: "install python {{ python_version }}"
+          make:
+          chdir: /tmp/python
+          target: altinstall
+
+      - name: "setup links"
+          file:
+          state: link
+          path: "{{ item.path }}"
+          src: "{{ item.src }}"
+          with_items:
+          - { path: "/usr/local/bin/python3" , src: "/usr/local/bin/python3.7" }
+          - { path: "/usr/local/bin/pip3" , src: "/usr/local/bin/pip3.7" }
+
+      - name: get tini
+        get_url:
+            url: "{{ item.url }}"
+            dest: "{{ item.dest }}"
+            mode: '755'
+        with_items:
+            - { url: "https://github.com/krallin/tini/releases/download/{{ tini_version }}/tini", dest: "/tini" }
+        
+      - name: make tini executable
+        file:
+            state: file
+            mode: '755'
+            path: "/tini"
+
+      - name: clone job_io
+        git:
+          repo: "{{ item.repo }}"
+          dest: "{{ item.dest }}"
+          clone: yes
+        with_items:
+          - { repo: "{{ job_io.repo }}", dest: "{{ job_io.dest }}" }
+    
+      - name: install job_io
+        shell:
+          cmd: "/usr/local/bin/python3 setup.py install"
+          chdir: "{{ job_io.dest }}"
