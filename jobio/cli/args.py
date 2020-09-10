@@ -1,8 +1,22 @@
 import argparse
 import os
 import textwrap
-from argparse import Namespace
+from argparse import Namespace, Action
 from jobio.defaults import EXECUTE, JOB, S3, STORAGE, BUCKET
+
+
+class CommandAction(Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        if hasattr(namespace, "execute_commands"):
+            existing_values = getattr(namespace, "execute_commands")
+            try:
+                existing_values.extend(values)
+            except AttributeError:
+                existing_values = values
+            finally:
+                setattr(namespace, "execute_commands", existing_values)
+        else:
+            setattr(namespace, "execute_commands", values)
 
 
 def strip_argument_prefix(arguments, prefix=""):
@@ -41,7 +55,7 @@ def add_job_meta_group(parser):
 
 def add_execute_group(parser):
     execute_group = parser.add_argument_group(title="Execute arguments")
-    execute_group.add_argument("execute_command", default="")
+    execute_group.add_argument("execute_commands", nargs="+", action=CommandAction)
     execute_group.add_argument("--execute-args", nargs="*", default=[])
     execute_group.add_argument("--execute-capture", action="store_true", default=True)
     execute_group.add_argument("--execute-output-path", default="")

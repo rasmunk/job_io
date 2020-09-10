@@ -30,14 +30,13 @@ required_job_values = {"name": True, "debug": False, "env_override": False}
 
 
 required_execute_fields = {
-    "command": str,
-    "args": list,
+    "commands": list,
     "capture": bool,
     "output_path": str,
 }
 
 required_execute_values = {
-    "command": True,
+    "commands": True,
     "args": False,
     "capture": False,
     "output_path": False,
@@ -48,21 +47,27 @@ def process(execute_kwargs=None):
     if not execute_kwargs:
         execute_kwargs = {}
 
-    command = [execute_kwargs["command"]]
-    if "args" in execute_kwargs:
-        command.extend(execute_kwargs["args"])
+    commands = execute_kwargs["commands"]
+    if not isinstance(commands, list):
+        commands = [execute_kwargs["commands"]]
 
-    # Subprocess
-    result = subprocess.run(command, capture_output=execute_kwargs["capture"])
-    output_results = {}
-    if hasattr(result, "args"):
-        output_results.update({"command": " ".join((getattr(result, "args")))})
-    if hasattr(result, "returncode"):
-        output_results.update({"returncode": str(getattr(result, "returncode"))})
-    if hasattr(result, "stderr"):
-        output_results.update({"error": str(getattr(result, "stderr"))})
-    if hasattr(result, "stdout"):
-        output_results.update({"output": str(getattr(result, "stdout"))})
+    output_results = []
+    for command in commands:
+        prepared_command = command.split()
+        # Subprocess
+        result = subprocess.run(
+            prepared_command, capture_output=execute_kwargs["capture"]
+        )
+        command_results = {}
+        if hasattr(result, "args"):
+            command_results.update({"command": " ".join((getattr(result, "args")))})
+        if hasattr(result, "returncode"):
+            command_results.update({"returncode": str(getattr(result, "returncode"))})
+        if hasattr(result, "stderr"):
+            command_results.update({"error": str(getattr(result, "stderr"))})
+        if hasattr(result, "stdout"):
+            command_results.update({"output": str(getattr(result, "stdout"))})
+        output_results.append(command_results)
     return output_results
 
 
