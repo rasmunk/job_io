@@ -3,7 +3,7 @@ python:
 - '3.7'
 - '3.8'
 before_install:
-- openssl aes-256-cbc -k "$k" -in aws.tar.gz.enc -out aws.tar.gz -d
+- openssl aes-256-cbc -k "$key" -in aws.tar.gz.enc -out aws.tar.gz -d
 - tar -xvf aws.tar.gz -C $HOME/
 install:
 - pip install -r requirements.txt
