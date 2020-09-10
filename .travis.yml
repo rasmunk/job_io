@@ -3,8 +3,7 @@ python:
 - '3.7'
 - '3.8'
 before_install:
-- openssl aes-256-cbc -K $encrypted_9f56976d76ad_key -iv $encrypted_9f56976d76ad_iv
-  -in aws.tar.gz.enc -out aws.tar.gz -d
+- openssl aes-256-cbc -k "$k" -in aws.tar.gz.enc -out aws.tar.gz -d
 - tar -xvf aws.tar.gz -C $HOME/
 install:
 - pip install -r requirements.txt
@@ -26,3 +25,6 @@ deploy:
     branch: master
   password:
     secure: Prak+m96961YikiOVPl+zJuOXekSYOREU3ZGUgKCUlf2tSi31ufrdtNCTGoWSW5b3nxEUxbWuuJEev3gA2VuKYBJ3ZiPOLOFfSIjUtXSydZr7qbgkUa9RvUOjbybhL4L6ajL6sU81KFSMjarlYEBfL/9x+tHg2wNdWvJWMAGgq3DoGm/dGA5brMihKLOdg2HmN/mOF4gPmeOJpaa9aSmjwocbFegogs25aLr6gfmOkYJd/P4kH2M3NP5pcNhrFFVpRCn8ZnrjRJIz8piiaVksAKj0MVb1qmAn9Xt0OKMV1Ulgbeb/iib2y7oKCSb1WwGjejx+SdaqUXwb8TCh5PdfW2Ss+aBGwsLRJ9dhRa7H6QB+wY+++1bOnO+/0TcAv8NhFX45BK1+Ytf7PJmmqHW05+yTMkxlFEHh7x/r6A4tp3k5kwSSGiyrQchmrOWGgSnTC03Taa/v1GuZSBF22rTk31RV63fc3Oq8+GXsufdYt/pCXy+mW4FaL0DzFnP9q6a8ZXz74xPFd9/OpfiiIryU1tNPzBYGe1b6aj0A/uNk1W5OK3EYJe9/zV9ziB64ZykFKam5kpzdr900lkp9UFgw4clLg4Hxeuu5ZsilwAPV7KDu+0mYwrL8jIZaQP/qsUfCfk2LRt8cCIIY5bWMax99Ke8tHjVpOmrkNyY7k3NgMQ=
+env:
+  global:
+    secure: Zyu0f1n8rgUP9H0RgmMgg/mVcDuG/STfWMqEY3y22fsicHgWQsbATX1Wu6wEAc8IWlprgOOGw/QDL+PhN9ynk1I8YinN4PBkf/sLQF4+F120HomMDgTH47nNx35CNbiIwLfa+A7wWPW1nQDt46IW2vuh/7MSb2WtNDRLEk9Boeq3d5iBSvyANwdu2GyHpTvXanf2PsFsckrybTIE0fb1eYUFzKTXAUmgWv71VcNgKDtpA5grfk4rp4lh3Du7gvxRnphbtYZ0RDHIwFk+Pugc+eeoEp5IFS22KAmEa9ljhhi/oKgDMYZFpj54+XqFkk49xx+Sk2dXTu7HO7IMn0r+eHkpGtI7SxCioajMWsguOa1vboKO7IwgpNsaZOPSr5UkP+Cmpqfiq306cWN81nLR8tnWc04bkyk7375/29LdUw5xO2WATFe21doCuNRtvX14qN4SYP0/Fqs0m47fySIbNim7eJwF5TjUuZx3eaPgv04KEYqAV3XpvmEz8VCGWGEE/D/PCEurDfYfq5AEe9bBODwKHThe48uC2xBPpjV9ZwLTC/6ey98IWojZwaQlXdKGqd8HiixbFo4M93G1aYeOHDs9vVG9pWEl6DSumfvZjmlggoeImsLL+gBU8qe32wXrynVlGHLoooULo77gR8wxqRkc5WQ7IelQSgaGPWfJWPE=
