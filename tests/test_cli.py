@@ -1,4 +1,3 @@
-import os
 import subprocess
 import unittest
 
@@ -7,11 +6,11 @@ class TestCLI(unittest.TestCase):
     def setUp(self):
         self.package_name = "jobio"
         # Install the cli
-        # args = ["python3", "setup.py", "install", "--user"]
-        # result = subprocess.run(args)
-        # self.assertIsNotNone(result)
-        # self.assertTrue(hasattr(result, "returncode"))
-        # self.assertEqual(result.returncode, 0)
+        args = ["python3", "setup.py", "install"]
+        result = subprocess.run(args)
+        self.assertIsNotNone(result)
+        self.assertTrue(hasattr(result, "returncode"))
+        self.assertEqual(result.returncode, 0)
 
     def test_cli_help(self):
         args = [self.package_name, "-h"]
