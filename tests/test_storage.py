@@ -1,136 +1,136 @@
-import unittest
-import os
-from jobio.util import validate_dict_types, validate_dict_values, create_dir
-from jobio.storage.staging import required_staging_fields, required_staging_values
+# import unittest
+# import os
+# from jobio.util import validate_dict_types, validate_dict_values, create_dir
+# from jobio.storage.staging import required_staging_fields, required_staging_values
 
-from jobio.storage.s3 import (
-    required_s3_fields,
-    required_s3_values,
-    required_bucket_fields,
-    required_bucket_values,
-    upload_directory_to_s3,
-    expand_s3_bucket,
-    stage_s3_resource,
-    create_bucket,
-    delete_bucket,
-    delete_objects,
-)
-
-
-here = os.path.abspath(__file__)
-current_dir = os.path.dirname(here)
+# from jobio.storage.s3 import (
+#     required_s3_fields,
+#     required_s3_values,
+#     required_bucket_fields,
+#     required_bucket_values,
+#     upload_directory_to_s3,
+#     expand_s3_bucket,
+#     stage_s3_resource,
+#     create_bucket,
+#     delete_bucket,
+#     delete_objects,
+# )
 
 
-class TestStorage(unittest.TestCase):
-    def setUp(self):
-        self.staging_options = dict(
-            enable=True,
-            secrets_dir="",
-            input_path="",
-            output_path="results",
-            endpoint="https://ku.compat.objectstorage.eu-frankfurt-1"
-            ".oraclecloud.com",
-        )
+# here = os.path.abspath(__file__)
+# current_dir = os.path.dirname(here)
 
-        self.s3_options = dict(region_name="eu-frankfurt-1")
 
-        self.bucket_options = dict(
-            name="bucket_test_name",
-            input_prefix="input",
-            output_prefix="output",
-        )
+# class TestStorage(unittest.TestCase):
+#     def setUp(self):
+#         self.staging_options = dict(
+#             enable=True,
+#             secrets_dir="",
+#             input_path="",
+#             output_path="results",
+#             endpoint="https://ku.compat.objectstorage.eu-frankfurt-1"
+#             ".oraclecloud.com",
+#         )
 
-    def tearDown(self):
-        self.staging_options = None
-        self.s3_options = None
+#         self.s3_options = dict(region_name="eu-frankfurt-1")
 
-    def test_staging_options(self):
-        self.assertTrue(
-            validate_dict_types(
-                self.staging_options,
-                required_fields=required_staging_fields,
-            )
-        )
+#         self.bucket_options = dict(
+#             name="bucket_test_name",
+#             input_prefix="input",
+#             output_prefix="output",
+#         )
 
-        self.assertTrue(
-            validate_dict_values(
-                self.staging_options, required_values=required_staging_values
-            )
-        )
+#     def tearDown(self):
+#         self.staging_options = None
+#         self.s3_options = None
 
-    def test_s3_options(self):
-        self.assertTrue(
-            validate_dict_types(self.s3_options, required_fields=required_s3_fields)
-        )
+#     def test_staging_options(self):
+#         self.assertTrue(
+#             validate_dict_types(
+#                 self.staging_options,
+#                 required_fields=required_staging_fields,
+#             )
+#         )
 
-        self.assertTrue(
-            validate_dict_values(self.s3_options, required_values=required_s3_values)
-        )
+#         self.assertTrue(
+#             validate_dict_values(
+#                 self.staging_options, required_values=required_staging_values
+#             )
+#         )
 
-    def test_bucket_options(self):
-        self.assertTrue(
-            validate_dict_types(
-                self.bucket_options, required_fields=required_bucket_fields
-            )
-        )
+#     def test_s3_options(self):
+#         self.assertTrue(
+#             validate_dict_types(self.s3_options, required_fields=required_s3_fields)
+#         )
 
-        self.assertTrue(
-            validate_dict_values(
-                self.bucket_options, required_values=required_bucket_values
-            )
-        )
+#         self.assertTrue(
+#             validate_dict_values(self.s3_options, required_values=required_s3_values)
+#         )
 
-    def test_s3_resource(self):
-        s3_resource = stage_s3_resource(
-            endpoint_url=self.staging_options["endpoint"], **self.s3_options
-        )
-        self.assertIsNotNone(s3_resource)
+#     def test_bucket_options(self):
+#         self.assertTrue(
+#             validate_dict_types(
+#                 self.bucket_options, required_fields=required_bucket_fields
+#             )
+#         )
 
-    def test_create_delete_bucket(self):
-        s3_resource = stage_s3_resource(
-            endpoint_url=self.staging_options["endpoint"], **self.s3_options
-        )
-        self.assertIsNotNone(s3_resource)
+#         self.assertTrue(
+#             validate_dict_values(
+#                 self.bucket_options, required_values=required_bucket_values
+#             )
+#         )
 
-        bucket = create_bucket(s3_resource.meta.client, self.bucket_options["name"])
+#     def test_s3_resource(self):
+#         s3_resource = stage_s3_resource(
+#             endpoint_url=self.staging_options["endpoint"], **self.s3_options
+#         )
+#         self.assertIsNotNone(s3_resource)
 
-        self.assertIsInstance(bucket, dict)
-        deleted = delete_bucket(s3_resource.meta.client, self.bucket_options["name"])
+#     def test_create_delete_bucket(self):
+#         s3_resource = stage_s3_resource(
+#             endpoint_url=self.staging_options["endpoint"], **self.s3_options
+#         )
+#         self.assertIsNotNone(s3_resource)
 
-        self.assertIsInstance(deleted, dict)
-        self.assertEqual(204, deleted["ResponseMetadata"]["HTTPStatusCode"])
+#         bucket = create_bucket(s3_resource.meta.client, self.bucket_options["name"])
 
-    def test_upload_expand_bucket(self):
-        # Expand test directory
-        s3_resource = stage_s3_resource(
-            endpoint_url=self.staging_options["endpoint"], **self.s3_options
-        )
+#         self.assertIsInstance(bucket, dict)
+#         deleted = delete_bucket(s3_resource.meta.client, self.bucket_options["name"])
 
-        bucket_options = dict(
-            name="jobio",
-            input_prefix="input",
-            output_prefix="output",
-        )
-        local_directory = os.path.join(current_dir, "res", "job_input")
+#         self.assertIsInstance(deleted, dict)
+#         self.assertEqual(204, deleted["ResponseMetadata"]["HTTPStatusCode"])
 
-        bucket = create_bucket(s3_resource.meta.client, bucket_options["name"])
-        self.assertIsInstance(bucket, dict)
+#     def test_upload_expand_bucket(self):
+#         # Expand test directory
+#         s3_resource = stage_s3_resource(
+#             endpoint_url=self.staging_options["endpoint"], **self.s3_options
+#         )
 
-        uploaded = upload_directory_to_s3(
-            s3_resource.meta.client, local_directory, bucket_options["name"]
-        )
-        self.assertTrue(uploaded)
+#         bucket_options = dict(
+#             name="jobio",
+#             input_prefix="input",
+#             output_prefix="output",
+#         )
+#         local_directory = os.path.join(current_dir, "res", "job_input")
 
-        expand_dir = os.path.join(current_dir, "res", "expand_dir")
-        if not os.path.exists(expand_dir):
-            self.assertTrue(create_dir(expand_dir))
+#         bucket = create_bucket(s3_resource.meta.client, bucket_options["name"])
+#         self.assertIsInstance(bucket, dict)
 
-        expaned = expand_s3_bucket(s3_resource, bucket_options["name"], expand_dir)
-        self.assertTrue(expaned)
+#         uploaded = upload_directory_to_s3(
+#             s3_resource.meta.client, local_directory, bucket_options["name"]
+#         )
+#         self.assertTrue(uploaded)
 
-        deleted = delete_objects(s3_resource, bucket_options["name"])
+#         expand_dir = os.path.join(current_dir, "res", "expand_dir")
+#         if not os.path.exists(expand_dir):
+#             self.assertTrue(create_dir(expand_dir))
 
-        # Delete all content
-        deleted = delete_bucket(s3_resource.meta.client, bucket_options["name"])
-        self.assertIsInstance(deleted, dict)
-        self.assertEqual(204, deleted["ResponseMetadata"]["HTTPStatusCode"])
+#         expaned = expand_s3_bucket(s3_resource, bucket_options["name"], expand_dir)
+#         self.assertTrue(expaned)
+
+#         deleted = delete_objects(s3_resource, bucket_options["name"])
+
+#         # Delete all content
+#         deleted = delete_bucket(s3_resource.meta.client, bucket_options["name"])
+#         self.assertIsInstance(deleted, dict)
+#         self.assertEqual(204, deleted["ResponseMetadata"]["HTTPStatusCode"])
