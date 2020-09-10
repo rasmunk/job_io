@@ -2,8 +2,11 @@ language: python
 python:
 - '3.7'
 - '3.8'
+env:
+  global:
+  - secure: pNim7WSqqf/SM+kD2In9WbW3dUHkAciXcPQvHI3maBOOG4Z7xARLxRf1s0ZaBaw5Z5nLJUSHlhE0dbPAT1BuouPRADvEqZIe2U/poZEc+fEebs1+t9n4ASSj/ruIRH+yJ8M7uhgaB0bZ08fvxAUFnD2GV2ovuv38TIV75eXYjFG3RjI5+7YW95tGOeL9x99W5mYLodkGIRqcmLE7lAvlHNhHo1V7K4s3BmCUSg+j1584axnAK0F7ijatEmX4l2NSk2fRUwUXwff7GVP+HU2kaeqBHb4LXTqom/G9SVPhQl2Wx1GC9R43uTCD4wwLizhBQGVU6YEA/JYMwZasB9XcZr6VZU+6Zhl2aYXV8s1R6uDytKlihn60TEM54bOMeh0FX2sxICmsiWgf5xBeLC5jGCl52OAsOzScdVLIeUyuva2pGxBBmDGBZOJADVJnsqeQQGByGfu6spLgACv3CdQ0+OVvKR1AOtt0uQOy4uieHS/C+6NmqfO0amU2ZPwL+PipYemOe5ab2DBoT7mM0WtglFOAcMi0J0PE486HBZASknXpWt9Vccpx8zWg2AelCO3Xi/I5jJJdOOyn9bDQm+IXBqIDCpe1NQPzUAndI5nAKk2jMzGAI7diT4bqPd8Vw7hksUAf9HX1C+sbskrCMxBNOFzELTD5GyuwOeFQRFgUPDc=
 before_install:
-- openssl aes-256-cbc -k $KEY -in aws.tar.gz.enc -out aws.tar.gz -d
+- openssl aes-256-cbc -k "$KEY" -in aws.tar.gz.enc -out aws.tar.gz -d
 - tar -xvf aws.tar.gz -C $HOME/
 install:
 - pip install -r requirements.txt
@@ -25,6 +28,3 @@ deploy:
     branch: master
   password:
     secure: Prak+m96961YikiOVPl+zJuOXekSYOREU3ZGUgKCUlf2tSi31ufrdtNCTGoWSW5b3nxEUxbWuuJEev3gA2VuKYBJ3ZiPOLOFfSIjUtXSydZr7qbgkUa9RvUOjbybhL4L6ajL6sU81KFSMjarlYEBfL/9x+tHg2wNdWvJWMAGgq3DoGm/dGA5brMihKLOdg2HmN/mOF4gPmeOJpaa9aSmjwocbFegogs25aLr6gfmOkYJd/P4kH2M3NP5pcNhrFFVpRCn8ZnrjRJIz8piiaVksAKj0MVb1qmAn9Xt0OKMV1Ulgbeb/iib2y7oKCSb1WwGjejx+SdaqUXwb8TCh5PdfW2Ss+aBGwsLRJ9dhRa7H6QB+wY+++1bOnO+/0TcAv8NhFX45BK1+Ytf7PJmmqHW05+yTMkxlFEHh7x/r6A4tp3k5kwSSGiyrQchmrOWGgSnTC03Taa/v1GuZSBF22rTk31RV63fc3Oq8+GXsufdYt/pCXy+mW4FaL0DzFnP9q6a8ZXz74xPFd9/OpfiiIryU1tNPzBYGe1b6aj0A/uNk1W5OK3EYJe9/zV9ziB64ZykFKam5kpzdr900lkp9UFgw4clLg4Hxeuu5ZsilwAPV7KDu+0mYwrL8jIZaQP/qsUfCfk2LRt8cCIIY5bWMax99Ke8tHjVpOmrkNyY7k3NgMQ=
-env:
-  global:
-  - secure: pNim7WSqqf/SM+kD2In9WbW3dUHkAciXcPQvHI3maBOOG4Z7xARLxRf1s0ZaBaw5Z5nLJUSHlhE0dbPAT1BuouPRADvEqZIe2U/poZEc+fEebs1+t9n4ASSj/ruIRH+yJ8M7uhgaB0bZ08fvxAUFnD2GV2ovuv38TIV75eXYjFG3RjI5+7YW95tGOeL9x99W5mYLodkGIRqcmLE7lAvlHNhHo1V7K4s3BmCUSg+j1584axnAK0F7ijatEmX4l2NSk2fRUwUXwff7GVP+HU2kaeqBHb4LXTqom/G9SVPhQl2Wx1GC9R43uTCD4wwLizhBQGVU6YEA/JYMwZasB9XcZr6VZU+6Zhl2aYXV8s1R6uDytKlihn60TEM54bOMeh0FX2sxICmsiWgf5xBeLC5jGCl52OAsOzScdVLIeUyuva2pGxBBmDGBZOJADVJnsqeQQGByGfu6spLgACv3CdQ0+OVvKR1AOtt0uQOy4uieHS/C+6NmqfO0amU2ZPwL+PipYemOe5ab2DBoT7mM0WtglFOAcMi0J0PE486HBZASknXpWt9Vccpx8zWg2AelCO3Xi/I5jJJdOOyn9bDQm+IXBqIDCpe1NQPzUAndI5nAKk2jMzGAI7diT4bqPd8Vw7hksUAf9HX1C+sbskrCMxBNOFzELTD5GyuwOeFQRFgUPDc=
