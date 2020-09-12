@@ -8,17 +8,17 @@
         package_version: latest
         tini_version: v0.19.0
     
-        job_io:
-          name: job_io
-          dest: /tmp/job_io
-          repo: https://github.com/rasmunk/job_io.git
+        jobio:
+          name: jobio
+          dest: /tmp/jobio
+          repo: https://github.com/rasmunk/jobio.git
     
         ansible_bender:
           base_image: "docker.io/library/ubuntu:20.04"
           target_image:
             name: "docker.io/nielsbohr/mccode-job-runner:{{ package_version }}"
             entrypoint: '["/tini", "-g", "--"]'
-            cmd: "job_io"
+            cmd: "jobio"
           layering: false
     
       tasks:
@@ -85,15 +85,15 @@
             mode: '755'
             path: "/tini"
 
-      - name: clone job_io
+      - name: clone jobio
         git:
           repo: "{{ item.repo }}"
           dest: "{{ item.dest }}"
           clone: yes
         with_items:
-          - { repo: "{{ job_io.repo }}", dest: "{{ job_io.dest }}" }
+          - { repo: "{{ jobio.repo }}", dest: "{{ jobio.dest }}" }
     
-      - name: install job_io
+      - name: install jobio
         shell:
           cmd: "/usr/local/bin/python3 setup.py install"
-          chdir: "{{ job_io.dest }}"
+          chdir: "{{ jobio.dest }}"
