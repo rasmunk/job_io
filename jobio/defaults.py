@@ -4,8 +4,9 @@ PACKAGE_NAME = "jobio"
 JOBIO = "JOBIO"
 
 # Argument groups defaults
-EXECUTE = "EXECUTE"
 JOB = "JOB"
+META = "META"
+JOB_META = "{}_{}".format(JOB, META)
 STORAGE = "STORAGE"
 S3 = "S3"
 BUCKET = "BUCKET"

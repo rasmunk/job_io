@@ -2,21 +2,21 @@ import argparse
 import os
 import textwrap
 from argparse import Namespace, Action
-from jobio.defaults import EXECUTE, JOB, S3, STORAGE, BUCKET
+from jobio.defaults import JOB, JOB_META, S3, STORAGE, BUCKET
 
 
 class CommandAction(Action):
     def __call__(self, parser, namespace, values, option_string=None):
-        if hasattr(namespace, "execute_commands"):
-            existing_values = getattr(namespace, "execute_commands")
+        if hasattr(namespace, "job_commands"):
+            existing_values = getattr(namespace, "job_commands")
             try:
                 existing_values.extend(values)
             except AttributeError:
                 existing_values = values
             finally:
-                setattr(namespace, "execute_commands", existing_values)
+                setattr(namespace, "job_commands", existing_values)
         else:
-            setattr(namespace, "execute_commands", values)
+            setattr(namespace, "job_commands", values)
 
 
 def strip_argument_prefix(arguments, prefix=""):
@@ -48,17 +48,18 @@ def _get_env_variables(variables, startswith=""):
 
 def add_job_meta_group(parser):
     meta_group = parser.add_argument_group(title="Job metadata")
-    meta_group.add_argument("--job-name", default=False)
-    meta_group.add_argument("--job-debug", action="store_true", default=False)
-    meta_group.add_argument("--job-env-override", action="store_true", default=False)
+    meta_group.add_argument("--job-meta-name", default=False)
+    meta_group.add_argument("--job-meta-debug", action="store_true", default=False)
+    meta_group.add_argument(
+        "--job-meta-env-override", action="store_true", default=False
+    )
 
 
-def add_execute_group(parser):
-    execute_group = parser.add_argument_group(title="Execute arguments")
-    execute_group.add_argument("execute_commands", nargs="+", action=CommandAction)
-    execute_group.add_argument("--execute-args", nargs="*", default=[])
-    execute_group.add_argument("--execute-capture", action="store_true", default=True)
-    execute_group.add_argument("--execute-output-path", default="")
+def add_job_group(parser):
+    job_group = parser.add_argument_group(title="Job arguments")
+    job_group.add_argument("job_commands", nargs="+", action=CommandAction)
+    job_group.add_argument("--job-capture", action="store_true", default=True)
+    job_group.add_argument("--job-output-path", default="")
 
 
 def add_bucket_group(parser):
@@ -86,8 +87,8 @@ def add_storage_group(parser):
 
 
 argument_groups = {
-    EXECUTE: add_execute_group,
-    JOB: add_job_meta_group,
+    JOB: add_job_group,
+    JOB_META: add_job_meta_group,
     STORAGE: add_storage_group,
     S3: add_s3_group,
     BUCKET: add_bucket_group,

@@ -4,7 +4,7 @@ import os
 import subprocess
 import time
 from jobio.cli.args import extract_arguments, extract_env_variables
-from jobio.defaults import EXECUTE, JOB, S3, BUCKET, STORAGE, JOB_DEFAULT_NAME, JOBIO
+from jobio.defaults import JOB, JOB_META, S3, BUCKET, STORAGE, JOB_DEFAULT_NAME, JOBIO
 from jobio.storage.staging import required_staging_fields, required_staging_values
 from jobio.storage.s3 import (
     bucket_exists,
@@ -38,7 +38,6 @@ required_execute_fields = {
 
 required_execute_values = {
     "commands": True,
-    "args": False,
     "capture": False,
     "output_path": False,
 }
@@ -80,42 +79,46 @@ def process(execute_kwargs=None):
 
 
 def submit(args):
-    job_dict = vars(extract_arguments(args, [JOB]))
-    if "name" not in job_dict or not job_dict["name"]:
+    job_meta_dict = vars(extract_arguments(args, [JOB_META]))
+    if "name" not in job_meta_dict or not job_meta_dict["name"]:
         since_epoch = int(time.time())
-        job_dict["name"] = "{}-{}".format(JOB_DEFAULT_NAME, since_epoch)
+        job_meta_dict["name"] = "{}-{}".format(JOB_DEFAULT_NAME, since_epoch)
 
-    execute_dict = vars(extract_arguments(args, [EXECUTE]))
-    if "env_override" in job_dict and job_dict["env_override"]:
+    job_dict = vars(extract_arguments(args, [JOB]))
+    if "env_override" in job_meta_dict and job_meta_dict["env_override"]:
         job_env_dict = vars(
-            extract_env_variables(required_job_fields, ["{}_{}".format(JOBIO, JOB)])
-        )
-        execute_env_dict = vars(
             extract_env_variables(
-                required_execute_fields, ["{}_{}".format(JOBIO, EXECUTE)]
+                required_job_fields, ["{}_{}".format(JOBIO, JOB_META)]
             )
         )
-        job_dict.update(job_env_dict)
-        execute_dict.update(execute_env_dict)
+        execute_env_dict = vars(
+            extract_env_variables(required_execute_fields, ["{}_{}".format(JOBIO, JOB)])
+        )
+        job_meta_dict.update(job_env_dict)
+        job_dict.update(execute_env_dict)
 
     valid_job_types = validate_dict_types(
-        execute_dict, required_fields=required_execute_fields, verbose=job_dict["debug"]
+        job_dict,
+        required_fields=required_execute_fields,
+        verbose=job_meta_dict["debug"],
     )
     valid_job_values = validate_dict_values(
-        execute_dict, required_values=required_execute_values, verbose=job_dict["debug"]
+        job_dict,
+        required_values=required_execute_values,
+        verbose=job_meta_dict["debug"],
     )
 
     if not valid_job_types:
         raise TypeError(
             "Incorrect required executable arguments "
             "were provided: {}, required: {}".format(
-                execute_dict, required_execute_fields.keys()
+                job_dict, required_execute_fields.keys()
             )
         )
     if not valid_job_values:
         raise ValueError(
             "Missing required executable values: {}, required: {}".format(
-                execute_dict, required_execute_values.keys()
+                job_dict, required_execute_values.keys()
             )
         )
 
@@ -123,7 +126,7 @@ def submit(args):
     bucket_dict = vars(extract_arguments(args, [BUCKET]))
     s3_dict = vars(extract_arguments(args, [S3]))
 
-    if "env_override" in job_dict and job_dict["env_override"]:
+    if "env_override" in job_meta_dict and job_meta_dict["env_override"]:
         staging_storage_env_dict = vars(
             extract_env_variables(
                 required_staging_fields, ["{}_{}".format(JOBIO, STORAGE)]
@@ -149,13 +152,13 @@ def submit(args):
         validate_dict_types(
             staging_storage_dict,
             required_fields=required_staging_fields,
-            verbose=job_dict["debug"],
+            verbose=job_meta_dict["debug"],
             throw=True,
         )
         validate_dict_values(
             staging_storage_dict,
             required_values=required_staging_values,
-            verbose=job_dict["debug"],
+            verbose=job_meta_dict["debug"],
             throw=True,
         )
 
@@ -163,14 +166,14 @@ def submit(args):
         validate_dict_types(
             bucket_dict,
             required_fields=required_bucket_fields,
-            verbose=job_dict["debug"],
+            verbose=job_meta_dict["debug"],
             throw=True,
         )
 
         validate_dict_values(
             bucket_dict,
             required_values=required_bucket_values,
-            verbose=job_dict["debug"],
+            verbose=job_meta_dict["debug"],
             throw=True,
         )
 
@@ -185,13 +188,13 @@ def submit(args):
         validate_dict_types(
             s3_dict,
             required_fields=required_s3_fields,
-            verbose=job_dict["debug"],
+            verbose=job_meta_dict["debug"],
             throw=True,
         )
         validate_dict_values(
             s3_dict,
             required_values=required_s3_values,
-            verbose=job_dict["debug"],
+            verbose=job_meta_dict["debug"],
             throw=True,
         )
 
@@ -219,27 +222,29 @@ def submit(args):
                 "Failed to expand the target bucket: {}".format(bucket_dict["name"])
             )
 
-    result = process(execute_kwargs=execute_dict)
+    result = process(execute_kwargs=job_dict)
     saved = False
     final_result_path = ""
 
     # Put results into the put path
-    if "output_path" in execute_dict:
-        root, ext = os.path.splitext(execute_dict["output_path"])
+    if "output_path" in job_dict:
+        root, ext = os.path.splitext(job_dict["output_path"])
         if ext:
-            final_result_path = execute_dict["output_path"]
+            final_result_path = job_dict["output_path"]
         else:
             # A directory path
             # Generate a filename to put inside the directory
-            result_output_file = "{}.txt".format(job_dict["name"])
+            result_output_file = "{}.txt".format(job_meta_dict["name"])
             final_result_path = os.path.join(
-                execute_dict["output_path"], result_output_file
+                job_dict["output_path"], result_output_file
             )
         if final_result_path:
             saved = save_results(final_result_path, result)
             if not saved:
                 raise RuntimeError(
-                    "Failed to save the results of job: {}".format(job_dict["name"])
+                    "Failed to save the results of job: {}".format(
+                        job_meta_dict["name"]
+                    )
                 )
 
     if staging_storage_dict["enable"]:
