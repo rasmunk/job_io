@@ -1,4 +1,5 @@
 import boto3
+import inspect
 import os
 import subprocess
 import time
@@ -55,9 +56,16 @@ def process(execute_kwargs=None):
     for command in commands:
         prepared_command = command.split()
         # Subprocess
-        result = subprocess.run(
-            prepared_command, capture_output=execute_kwargs["capture"]
-        )
+        run_kwargs = {}
+        available_arguments = inspect.getfullargspec(subprocess.run)
+        if "capture_output" in available_arguments.kwonlyargs:
+            run_kwargs["capture_output"] = execute_kwargs["capture"]
+        else:
+            if execute_kwargs["capture"]:
+                run_kwargs["stdout"] = subprocess.PIPE
+                run_kwargs["stderr"] = subprocess.PIPE
+
+        result = subprocess.run(prepared_command, **run_kwargs)
         command_results = {}
         if hasattr(result, "args"):
             command_results.update({"command": " ".join((getattr(result, "args")))})
