@@ -1,6 +1,7 @@
 .. image:: https://travis-ci.com/rasmunk/jobio.svg?branch=master
     :target: https://travis-ci.com/rasmunk/jobio
-
+.. image:: https://badge.fury.io/py/jobio.svg
+    :target: https://badge.fury.io/py/jobio
 =====
 jobio
 =====
