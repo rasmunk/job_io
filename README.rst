@@ -1,10 +1,10 @@
+=====
+jobio
+=====
 .. image:: https://travis-ci.com/rasmunk/jobio.svg?branch=master
     :target: https://travis-ci.com/rasmunk/jobio
 .. image:: https://badge.fury.io/py/jobio.svg
     :target: https://badge.fury.io/py/jobio
-=====
-jobio
-=====
 
 jobio is used for executing processes on a Unix-like environment.
 The execution runtime at the moment is just a simple shell execution of the job command and the optional arguments.
