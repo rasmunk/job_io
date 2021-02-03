@@ -35,7 +35,9 @@ class TestStorage(unittest.TestCase):
         self.s3_options = dict(region_name="eu-frankfurt-1")
 
         self.bucket_options = dict(
-            name="bucket_test_name", input_prefix="input", output_prefix="output",
+            name="bucket_test_name",
+            input_prefix="input",
+            output_prefix="output",
         )
 
     def tearDown(self):
@@ -45,7 +47,8 @@ class TestStorage(unittest.TestCase):
     def test_staging_options(self):
         self.assertTrue(
             validate_dict_types(
-                self.staging_options, required_fields=required_staging_fields,
+                self.staging_options,
+                required_fields=required_staging_fields,
             )
         )
 
@@ -104,7 +107,9 @@ class TestStorage(unittest.TestCase):
         )
 
         bucket_options = dict(
-            name="jobio", input_prefix="input", output_prefix="output",
+            name="jobio",
+            input_prefix="input",
+            output_prefix="output",
         )
         local_directory = os.path.join(current_dir, "res", "job_input")
 
