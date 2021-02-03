@@ -36,7 +36,7 @@ setup(
     keywords=["Job", "IO", "S3", "Batch"],
     install_requires=read_req("requirements.txt"),
     extras_require={
-        "test": read_req("requirements-dev.txt"),
+        "test": read_req("tests/requirements.txt"),
         "dev": read_req("requirements-dev.txt"),
     },
     entry_points={"console_scripts": ["jobio = jobio.cli.cli:run"]},
@@ -44,9 +44,9 @@ setup(
         "Intended Audience :: Developers",
         "Intended Audience :: System Administrators",
         "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
 )
